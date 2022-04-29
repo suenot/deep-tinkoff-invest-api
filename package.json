@@ -1,0 +1,19 @@
+{
+  "name": "deep-tinkoff-invest-api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "",
+  "dependencies": {
+    "@deep-foundation/deeplinks": "0.0.55",
+    "@deep-foundation/hasura": "^0.0.15",
+    "graphql": "^15.8.0",
+    "lodash": "^4.17.21",
+    "react": "^18.1.0",
+    "subscriptions-transport-ws": "^0.9.19"
+  }
+}
