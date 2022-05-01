@@ -2,7 +2,10 @@
 This package is work in progress.
 
 ### Instrument
-![Instrument scheme](./drawio/Instrument.drawio.svg)
+![Instrument scheme](./src/instrument/Instrument.drawio.svg)
 
 ### Position
-![Position scheme](./drawio/Position.drawio.svg)
+![Position scheme](./src/position/Position.drawio.svg)
+
+### Candle
+![Candle scheme](./src/candle/Candle.drawio.svg)
