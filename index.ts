@@ -8,11 +8,13 @@ import { DeepClient } from '@deep-foundation/deeplinks/imports/client';
 // import { minilinks, Link } from '@deep-foundation/deeplinks/imports/minilinks';
 
 const apolloClient = generateApolloClient({
-  path: '3006-deepfoundation-dev-trklra2bj6y.ws-eu43.gitpod.io/gql', // <<= HERE PATH TO UPDATE
-  ssl: true,
+  // path: '3006-deepfoundation-dev-trklra2bj6y.ws-eu43.gitpod.io/gql', // <<= HERE PATH TO UPDATE
+  path: 'localhost:3006/gql', // <<= HERE PATH TO UPDATE
+  ssl: false,
   // admin token in prealpha deep secret key
   // token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwczovL2hhc3VyYS5pby9qd3QvY2xhaW1zIjp7IngtaGFzdXJhLWFsbG93ZWQtcm9sZXMiOlsibGluayJdLCJ4LWhhc3VyYS1kZWZhdWx0LXJvbGUiOiJsaW5rIiwieC1oYXN1cmEtdXNlci1pZCI6IjIwNiJ9LCJpYXQiOjE2NDg0MDkzODV9.aiMZAI65NGEWwERsj1qdimHZcqkuaSLHBR8nGo8n2Nk',
-  token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwczovL2hhc3VyYS5pby9qd3QvY2xhaW1zIjp7IngtaGFzdXJhLWFsbG93ZWQtcm9sZXMiOlsibGluayJdLCJ4LWhhc3VyYS1kZWZhdWx0LXJvbGUiOiJsaW5rIiwieC1oYXN1cmEtdXNlci1pZCI6IjIzMiJ9LCJpYXQiOjE2NTEyNTM0Nzd9.IJXiUMmNR7jN7sZyE2BLRHmxPEtBn32DjL_rCu_fSCE'
+  // gitpod token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwczovL2hhc3VyYS5pby9qd3QvY2xhaW1zIjp7IngtaGFzdXJhLWFsbG93ZWQtcm9sZXMiOlsibGluayJdLCJ4LWhhc3VyYS1kZWZhdWx0LXJvbGUiOiJsaW5rIiwieC1oYXN1cmEtdXNlci1pZCI6IjIzMiJ9LCJpYXQiOjE2NTEyNTM0Nzd9.IJXiUMmNR7jN7sZyE2BLRHmxPEtBn32DjL_rCu_fSCE'
+  token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwczovL2hhc3VyYS5pby9qd3QvY2xhaW1zIjp7IngtaGFzdXJhLWFsbG93ZWQtcm9sZXMiOlsibGluayJdLCJ4LWhhc3VyYS1kZWZhdWx0LXJvbGUiOiJsaW5rIiwieC1oYXN1cmEtdXNlci1pZCI6IjIzMiJ9LCJpYXQiOjE2NTEzNDEwNDZ9.ccK9T0KAaEne_VSr9sBGp86aM1_U_IDXDtnUf1Veq_o'
 });
 const deep = new DeepClient({ apolloClient, linkId: 206 });
 
@@ -41,15 +43,16 @@ const main = async () => {
   const Number = await deep.id('@deep-foundation/core', 'Number'); // Number link id - use it as symbol
   console.log('Number', Number);
 
-  const { data: [{ id: packageId }] } = await deep.insert({
-    type_id: Package,
-    string: { data: { value: `@deep-foundation/tinkoff-invest-api` } },
-    in: { data: {
-      type_id: Contain,
-      from_id: actualUserId
-    } },
-  });
-  console.log('packageId', packageId);
+  // const { data: [{ id: packageId }] } = await deep.insert({
+  //   type_id: Package,
+  //   string: { data: { value: `@deep-foundation/tinkoff-invest-api` } },
+  //   in: { data: {
+  //     type_id: Contain,
+  //     from_id: actualUserId
+  //   } },
+  // });
+  // console.log('packageId', packageId); // 427
+  const packageId = 427;
 
   // insert type StringValue
   const { data: [{ id: StringValue }] } = await deep.insert({
@@ -69,52 +72,92 @@ const main = async () => {
   });
   console.log('StringValue', StringValue);
 
-  // insert type NumberValue
-  const { data: [{ id: NumberValue }] } = await deep.insert({
-    // NumberValue just dot
-    type_id: Type,
-    in: { data: {
-      // nest into package as 'NumberValue' in Contain's tree under package
-      type_id: Contain,
-      from_id: packageId, // before created package
-      string: { data: { value: 'NumberValue' } },
-    } },
-    out: { data: {
-      // NumberValue can have .number as .value of link.
-      type_id: Value,
-      to_id: Number,
-    } },
-  });
-  console.log('NumberValue', NumberValue);
+  // // insert type NumberValue
+  // const { data: [{ id: NumberValue }] } = await deep.insert({
+  //   // NumberValue just dot
+  //   type_id: Type,
+  //   in: { data: {
+  //     // nest into package as 'NumberValue' in Contain's tree under package
+  //     type_id: Contain,
+  //     from_id: packageId, // before created package
+  //     string: { data: { value: 'NumberValue' } },
+  //   } },
+  //   out: { data: {
+  //     // NumberValue can have .number as .value of link.
+  //     type_id: Value,
+  //     to_id: Number,
+  //   } },
+  // });
+  // console.log('NumberValue', NumberValue);
 
-  // insert type Position
-  const { data: [{ id: Position }] } = await deep.insert({
-    // Position just dot
-    type_id: Type,
-    in: { data: {
-      // nest into package as 'Position' in Contain's tree under package
-      type_id: Contain,
-      from_id: packageId, // before created package
-      string: { data: { value: 'Position' } },
-    } },
-  });
-  console.log('Position', Position);
+  // // insert type Position
+  // const { data: [{ id: Position }] } = await deep.insert({
+  //   // Position just dot
+  //   type_id: Type,
+  //   in: { data: [
+  //       {
+  //         // nest into package as 'Position' in Contain's tree under package
+  //         type_id: Contain,
+  //         from_id: packageId, // before created package
+  //         string: { data: { value: 'Position' } },
+  //       },
+  //       {
+  //         // nest into package as 'Position' in Contain's tree under package
+  //         type_id: Contain,
+  //         from_id: actualUserId, // before created package
+  //         // string: { data: { value: 'Position' } },
+  //       }
+  //     ]
+  //   },
+  // });
+  // console.log('Position', Position);
 
-  // insert type Figi
-  const { data: [{ id: Figi }] } = await deep.insert({
-    // Figi just dot
-    from_id: Position,
-    to_id: StringValue,
-    type_id: Type,
-    in: { data: {
-      // nest into package as 'Figi' in Contain's tree under package
-      type_id: Contain,
-      from_id: packageId, // before created package
-      string: { data: { value: 'Figi' } },
-    } },
-  });
-  console.log('Figi', Figi);
+  // // insert type Figi
+  // const { data: [{ id: Figi }] } = await deep.insert({
+  //   // Figi just dot
+  //   from_id: Position,
+  //   to_id: StringValue,
+  //   type_id: Type,
+  //   in: { data: {
+  //     // nest into package as 'Figi' in Contain's tree under package
+  //     type_id: Contain,
+  //     from_id: packageId, // before created package
+  //     string: { data: { value: 'Figi' } },
+  //   } },
+  // });
+  // console.log('Figi', Figi);
+
+
+  // // // insert type Figi
+  // // const { data: [{ id: Figi }] } = await deep.insert({
+  // //   // Figi just dot
+  // //   from_id: Position,
+  // //   to_id: StringValue,
+  // //   type_id: Type,
+  // //   in: { data: {
+  // //     // nest into package as 'Figi' in Contain's tree under package
+  // //     type_id: Contain,
+  // //     from_id: packageId, // before created package
+  // //     string: { data: { value: 'Figi' } },
+  // //   } },
+  // // });
+  // // console.log('Figi', Figi);
+
+  // // insert first Position in actual user
+  // const { data: [{ id: positionId1 }] } = await deep.insert({
+  //   type_id: Position,
+  //   out: { data: [
+  //       {
+  //         type_id: Figi,
+  //         to_id: actualUserId,
+  //       }
+  //     ]
+  //   },
+  // });
+  // console.log('positionId1', positionId1);
 }
+
+
 
 main()
 
