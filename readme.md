@@ -39,7 +39,7 @@ Tinkoff invest api methods:
 - [GetOrders](https://tinkoff.github.io/investAPI/orders/#getorders)
 
 ### OrderBook
-![OrderBook scheme](./src/order/OrderBook.drawio.svg)
+![OrderBook scheme](./src/orderbook/OrderBook.drawio.svg)
 
 Tinkoff invest api methods:
 - [GetOrderBook](https://tinkoff.github.io/investAPI/marketdata/#getorderbook)
