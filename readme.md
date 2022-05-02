@@ -44,7 +44,7 @@ Tinkoff invest api methods:
 Tinkoff invest api methods:
 - [GetOrderBook](https://tinkoff.github.io/investAPI/marketdata/#getorderbook)
 
-### Operations and Trades
+### Operation and Trade
 Trades from the marker and from users are the same stucture.
 ![Trade scheme](./src/trade/Trade.drawio.svg)
 
