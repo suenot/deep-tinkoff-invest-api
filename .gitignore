@@ -2,6 +2,7 @@
 
 # private
 /private/
+/.tmp/
 
 # dependencies
 node_modules/
