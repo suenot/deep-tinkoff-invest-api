@@ -33,10 +33,18 @@ Tinkoff invest api methods:
 Tinkoff invest api methods:
 - [GetOrderBook](https://tinkoff.github.io/investAPI/marketdata/#getorderbook)
 
-### Order
-Orders from the marker and from users are the same stucture.
+### Transaction
+Trades from the marker and from users are the same stucture.
+Operations, Orders and Trades are one union structure - Transaction.
 
-![Order scheme](./src/order/Order.drawio.svg)
+![Tradensaction scheme](./src/transaction/Transaction.drawio.svg)
+
+Tinkoff invest api methods:
+- [GetLastTrades](https://tinkoff.github.io/investAPI/marketdata/#getlasttrades) - Метод запроса последних обезличенных сделок по инструменту.
+- [GetOperations](https://tinkoff.github.io/investAPI/operations/#getoperations) - Метод получения списка операций по счёту.
+
+#### Order
+Orders from the marker and from users are the same stucture.
 
 Tinkoff invest api methods:
 - [PostOrder](https://tinkoff.github.io/investAPI/orders/#postorder)
@@ -44,13 +52,3 @@ Tinkoff invest api methods:
 - [GetOrderState](https://tinkoff.github.io/investAPI/orders/#getorderstate)
 - [GetOrders](https://tinkoff.github.io/investAPI/orders/#getorders)
 
-### Operation
-Trades from the marker and from users are the same stucture.
-Operations will be combined with Orders.
-Maybe Trades will be renamed to Transactions.
-
-![Trade scheme](./src/trade/Trade.drawio.svg)
-
-Tinkoff invest api methods:
-- [GetLastTrades](https://tinkoff.github.io/investAPI/marketdata/#getlasttrades) - Метод запроса последних обезличенных сделок по инструменту.
-- [GetOperations](https://tinkoff.github.io/investAPI/operations/#getoperations) - Метод получения списка операций по счёту.
