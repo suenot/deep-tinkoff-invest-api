@@ -4,6 +4,8 @@ This package is work in progress.
 ### Account
 ![Account scheme](./src/account/Account.drawio.svg)
 
+Agent is universal name for: broker, bank and any other financial organization.
+
 Tinkoff invest api methods:
 - [GetAccounts](https://tinkoff.github.io/investAPI/users/#getaccounts)
 
@@ -34,7 +36,7 @@ Tinkoff invest api methods:
 Trades from the marker and from users are the same stucture.
 Operations, Orders and Trades are one union structure - Transaction.
 
-![Tradensaction scheme](./src/transaction/Transaction.drawio.svg)
+![Transaction scheme](./src/transaction/Transaction.drawio.svg)
 
 Tinkoff invest api methods:
 - [GetLastTrades](https://tinkoff.github.io/investAPI/marketdata/#getlasttrades) - Метод запроса последних обезличенных сделок по инструменту.
