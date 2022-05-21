@@ -2,7 +2,7 @@
   "name": "deep-tinkoff-invest-api",
   "version": "1.0.0",
   "description": "Trading bot",
-  "main": "DEBUG=\"*\" ts-mocha --timeout 10000 --project ./tsconfig.json test.ts",
+  "main": "index.ts",
   "repository": {
     "type": "git",
     "url": "https://github.com/suenot/deep-tinkoff-invest-api.git"
@@ -15,7 +15,7 @@
   ],
   "scripts": {
     "start": "ts-node index.ts",
-    "test": "mocha"
+    "test": "DEBUG=\"*\" ts-mocha --timeout 10000 --project ./tsconfig.json test.ts"
   },
   "author": "Eugen Soloviov",
   "license": "Apache-2.0",
