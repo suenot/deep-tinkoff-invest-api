@@ -2,7 +2,7 @@
   "name": "deep-tinkoff-invest-api",
   "version": "1.0.0",
   "description": "Trading bot",
-  "main": "index.ts",
+  "main": "DEBUG=\"*\" ts-mocha --timeout 10000 --project ./tsconfig.json test.ts",
   "repository": {
     "type": "git",
     "url": "https://github.com/suenot/deep-tinkoff-invest-api.git"
@@ -15,17 +15,24 @@
   ],
   "scripts": {
     "start": "ts-node index.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha"
   },
   "author": "Eugen Soloviov",
   "license": "Apache-2.0",
   "dependencies": {
     "@deep-foundation/deeplinks": "0.0.55",
     "@deep-foundation/hasura": "^0.0.15",
+    "dotenv": "^16.0.1",
     "graphql": "^15.8.0",
     "lodash": "^4.17.21",
     "react": "^18.1.0",
     "subscriptions-transport-ws": "^0.9.19",
-    "dotenv": "^16.0.1"
+    "uniqid": "^5.1.0"
+  },
+  "devDependencies": {
+    "mocha": "^6.2.2",
+    "ts-mocha": "^6.0.0",
+    "ts-node": "^8.5.2",
+    "chai": "^4.2.0"
   }
 }

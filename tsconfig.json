@@ -1,6 +1,38 @@
 {
-    "compilerOptions": {
-        "module": "CommonJS",
-        "jsx": "react"
-    }
+  "compilerOptions": {
+    "allowJs": true,
+    "allowSyntheticDefaultImports": true,
+    "experimentalDecorators": true,
+    "sourceMap": true,
+    "inlineSources": true,
+    "sourceRoot": "/",
+    "outDir": "build",
+    "rootDir": ".",
+    "noImplicitAny": false,
+    "removeComments": true,
+    "jsx": "react",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "target": "es2015",
+    "lib": [
+      "dom",
+      "es6",
+      "es7"
+    ],
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": true,
+    "isolatedModules": true
+  },
+  "exclude": [
+    "./node_modules",
+    "./.next",
+    "./.meteor",
+    "./build"
+  ],
+  "include": [
+    "./"
+  ]
 }
