@@ -1,19 +1,31 @@
 {
   "name": "deep-tinkoff-invest-api",
   "version": "1.0.0",
-  "description": "",
+  "description": "Trading bot",
   "main": "index.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/suenot/deep-tinkoff-invest-api.git"
+  },
+  "keywords": [
+    "trading",
+    "investment",
+    "strategy",
+    "bot"
+  ],
   "scripts": {
+    "start": "ts-node index.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
-  "license": "",
+  "author": "Eugen Soloviov",
+  "license": "Apache-2.0",
   "dependencies": {
     "@deep-foundation/deeplinks": "0.0.55",
     "@deep-foundation/hasura": "^0.0.15",
     "graphql": "^15.8.0",
     "lodash": "^4.17.21",
     "react": "^18.1.0",
-    "subscriptions-transport-ws": "^0.9.19"
+    "subscriptions-transport-ws": "^0.9.19",
+    "dotenv": "^16.0.1"
   }
 }

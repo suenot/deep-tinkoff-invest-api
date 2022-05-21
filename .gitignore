@@ -3,6 +3,7 @@
 # private
 /private/
 /.tmp/
+/.data
 
 # dependencies
 node_modules/
