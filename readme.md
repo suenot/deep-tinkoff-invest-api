@@ -19,6 +19,7 @@ Tinkoff invest api methods:
 
 ### Position
 ![Position scheme](./src/position/Position.drawio.svg)
+Source of position can be `TinkoffProvider` GetPositions() or `Sum Handler` that sum all transaction (trades, orders, etc).
 
 Tinkoff invest api methods:
 - [GetPositions](https://tinkoff.github.io/investAPI/operations/#getpositions)
