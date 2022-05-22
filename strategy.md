@@ -3,12 +3,12 @@
 Простой балансировщик портфелей. Есть реальный и виртуальный портфель.
 
 ```ts
-const wallet {
+const wallet = {
   AAPL: 2,
   USD: 1000,
 };
 
-const desiredWallet {
+const desiredWallet = {
   AAPL: 50%,
   USD: 50%,
 };
@@ -32,12 +32,12 @@ walletToPercent(wallet: Wallet): Wallet
 4. Результат:
 
 ```ts
-const balancerWallet {
+const balancerWallet = {
   AAPL: 4,
   USD: 600,
 };
 
-const balancerWallet {
+const balancerWallet = {
   AAPL: 2,
   USD: -400,
 };
@@ -46,7 +46,7 @@ const balancerWallet {
 5. Фильтруем валюты.
 
 ```ts
-const balancerWalletInstruments {
+const balancerWalletInstruments = {
   AAPL: 2,
 };
 ```
