@@ -7,19 +7,19 @@ import { writefile } from '../utils';
   const { instruments } = createSdk(process.env.TOKEN || '');
 
   //==============================================================================================================
-  const schedule = await instruments.tradingSchedules({
-    from: new Date(),
-    to: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000),
-    exchange: 'MOEX',
-  });
-  const scheduleAll = await instruments.tradingSchedules({
-    from: new Date(),
-    to: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000),
-  }); // биржа не указана
+  // const schedule = await instruments.tradingSchedules({
+  //   from: new Date(),
+  //   to: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000),
+  //   exchange: 'MOEX',
+  // });
+  // const scheduleAll = await instruments.tradingSchedules({
+  //   from: new Date(),
+  //   to: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000),
+  // }); // биржа не указана
 
-  console.log('Расписание торгов Московской биржи в указанном временном промежутке: ', schedule.exchanges[0]);
-  console.log('Расписание торгов всех бирж в указанном временном промежутке: ', scheduleAll.exchanges);
-  writefile(scheduleAll, 'tradingSchedules');
+  // console.log('Расписание торгов Московской биржи в указанном временном промежутке: ', schedule.exchanges[0]);
+  // console.log('Расписание торгов всех бирж в указанном временном промежутке: ', scheduleAll.exchanges);
+  // writefile(scheduleAll, 'tradingSchedules');
   //==============================================================================================================
 
   //==============================================================================================================
@@ -57,7 +57,9 @@ import { writefile } from '../utils';
   // });
 
   // console.log('Получения списка валют, допущенных к торговле через API: ', currencies);
+  // writefile(currencies, 'currencies');
   // console.log('Получения информации о конкретной валюте, по FIGI: ', currencyByFIGI);
+  // writefile(currencyByFIGI, 'currencyBy');
   // //==============================================================================================================
 
   // //==============================================================================================================
@@ -70,7 +72,9 @@ import { writefile } from '../utils';
   // });
 
   // console.log('Получения ETF, допущенных к торговле через API: ', etfs);
+  // writefile(etfs, 'etfs');
   // console.log('Получение информации о ETF по его FIGI: ', etfByFIGI);
+  // writefile(etfByFIGI, 'etfBy');
   //==============================================================================================================
 
   //==============================================================================================================
@@ -105,28 +109,31 @@ import { writefile } from '../utils';
   //==============================================================================================================
 
   //==============================================================================================================
-  const instrument = await instruments.getInstrumentBy({
-    idType: InstrumentIdType.INSTRUMENT_ID_TYPE_FIGI,
-    id: 'BBG005DXJS36',
-  });
+  // const instrument = await instruments.getInstrumentBy({
+  //   idType: InstrumentIdType.INSTRUMENT_ID_TYPE_FIGI,
+  //   id: 'BBG005DXJS36',
+  // });
 
-  const dividends = await instruments.getDividends({
-    figi: 'BBG0047315Y7',
-    from: new Date(),
-    to: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-  });
+  // const dividends = await instruments.getDividends({
+  //   figi: 'BBG0047315Y7',
+  //   from: new Date(),
+  //   to: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+  // });
 
-  console.log('Получение основной информации об инструменте: ', instrument);
-  writefile(instrument, 'getInstrumentBy');
-  console.log('Получение событий выплаты дивидендов по инструменту: ', dividends);
-  writefile(dividends, 'getDividends');
+  // console.log('Получение основной информации об инструменте: ', instrument);
+  // writefile(instrument, 'getInstrumentBy');
+  // console.log('Получение событий выплаты дивидендов по инструменту: ', dividends);
+  // writefile(dividends, 'getDividends');
   //==============================================================================================================
 
   //==============================================================================================================
-  // const assets = await instruments.getAssets({});
+  const assets = await instruments.getAssets({});
+
+  console.log('Получение списка активов: ', assets);
+  writefile(assets, 'getAssets');
+
   // const assetsByID = await instruments.getAssetBy({ id: '09411d72-f4f2-4dad-a494-3d91be1dabd8' });
-
-  // console.log('Получение списка активов: ', assets);
   // console.log('Получение актива по его идентификатору: ', assetsByID);
-  //==============================================================================================================
+  // writefile(assetsByID, 'getAssetBy');
+  // //==============================================================================================================
 })();

@@ -31,7 +31,7 @@ export const writefile = (obj: object, filename: string) => {
 
   fs.writeFile(`${filename}Data.ts`, objExportedDefault, 'utf8', (err: any) => {
     if (err) return console.log(err);
-    console.log("JSON file has been saved.");
+    console.log('JSON file has been saved.');
   });
 };
 

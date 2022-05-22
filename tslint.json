@@ -19,5 +19,10 @@
       "allow-pascal-case",
       "allow-snake-case"
     ]
+  },
+  "linterOptions": {
+    "exclude": [
+        "invest-nodejs-grpc-sdk/*.ts"
+    ]
   }
 }

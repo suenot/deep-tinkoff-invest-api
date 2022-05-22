@@ -3,16 +3,31 @@ import 'mocha';
 import { expect } from 'chai';
 import _ from 'lodash';
 // import uniqid from 'uniqid';
+import { instruments } from './instrumentsData';
 
 const debug = require('debug')('bot').extend('balancer');
 
 const sumValues = obj => Object.values(obj).reduce((a: number, b: number) => a + b);
 
-interface Wallet {
+interface Position {
+  pair?: string;
+  base?: string;
+  quote?: string;
+  figi?: string;
+  amount?: number;
+  lotSize?: number;
+  price?: number;
+}
+
+type Wallet = Position[];
+
+interface DesiredWallet {
   [key: string]: Number;
 }
 
-const normalizeDesire = (wallet: Wallet): Wallet => {
+(global as any).INSTRUMENTS = instruments;
+
+const normalizeDesire = (wallet: DesiredWallet): DesiredWallet => {
   debug('Нормализуем проценты, чтобы общая сумма была равна 100%, чтобы исключить человеческий фактор');
   debug('wallet', wallet);
 
@@ -28,11 +43,11 @@ const normalizeDesire = (wallet: Wallet): Wallet => {
 describe('bot', () => {
   describe('balancer', () => {
           // const wallet = {
-      //   AAPL: 2,
+      //   AAPL: amount: 2, lot, last_price
       //   USD: 1000,
       // };
-    it.only('Test normalizeDezire', async () => {
-      const desiredWallet = {
+    it.skip('Test normalizeDezire', async () => {
+      const desiredWallet: DesiredWallet = {
         AAPL: 100,
         USD: 50,
       };
@@ -41,23 +56,72 @@ describe('bot', () => {
       expect(normalizedDesire).to.deep.equal({ AAPL: 66.66666666666666, USD: 33.33333333333333 });
     });
 
-    it.skip('#1', async () => {
-      // Нужно узнать лотность и последнюю ценю
-      // Использовать данные последних цен
-      // Лотность берется из инструмента
-      const wallet = {
-        AAPL: 2,
-        USD: 1000,
-      };
-      const desiredWallet = {
+    it.skip('Test normalizeDezire', async () => {
+      const desiredWallet: DesiredWallet = {
         AAPL: 100,
         USD: 50,
       };
       const normalizedDesire = normalizeDesire(desiredWallet);
 
+      expect(normalizedDesire).to.deep.equal({ AAPL: 66.66666666666666, USD: 33.33333333333333 });
+    });
 
+    it.only('#1', async () => {
+      // Нужно узнать лотность и последнюю ценю
+      // Использовать данные последних цен
+      // Лотность берется из инструмента
+      const wallet: Wallet = [
+        {
+          pair: 'RUB/RUB',
+          base: 'RUB',
+          quote: 'RUB',
+          figi: undefined,
+          amount: 100000,
+          lotSize: 1,
+          price: 1,
+        },
+        {
+          pair: 'USD/RUB',
+          base: 'USD',
+          quote: 'RUB',
+          figi: 'BBG0013HGFT4',
+          amount: 1000,
+          lotSize: 1,
+          price: 1,
+        },
+        {
+          pair: 'AAPL/USD',
+          base: 'AAPL',
+          quote: 'USD',
+          figi: 'BBG000B9XRY4',
+          amount: 2,
+          lotSize: 1,
+          price: 130,
+        },
+      ];
+
+      const desiredWallet = {
+        AAPL: 100,
+        USD: 50,
+        RUB: 10,
+      };
+      const normalizedDesire = normalizeDesire(desiredWallet);
+
+      // const lastBidPriceUSD = getLastBidPrice('USD');
+
+      // calculateTotalInUSD(wallet, lastBidPriceUSD);
+
+      // calculateLotPriceInUSD(wallet, lastBidPriceUSD);
+
+      // sortPositionsByLotPrice(wallet, side) // side: desc/asc
+
+      // balanceFlow(wallet, desiredWallet)
+        // for(desiredPosition of desiredWallet) {
+        //   find wallet[desiredPosition]
+        //   recalculatePosition()
+        // }
 
       expect(undefined).to.equal(undefined);
-    })
-  })
-})
+    });
+  });
+});
