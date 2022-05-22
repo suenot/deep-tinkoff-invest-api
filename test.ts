@@ -12,6 +12,11 @@ const USD_FIGI = 'BBG0013HGFT4';
 
 const sumValues = obj => Object.values(obj).reduce((a: number, b: number) => a + b);
 
+interface TinkoffBigNumber {
+  units: number;
+  nano: number;
+}
+
 interface Position {
   pair?: string;
   base?: string;
@@ -19,7 +24,8 @@ interface Position {
   figi?: string;
   amount?: number;
   lotSize?: number;
-  price?: number;
+  price?: TinkoffBigNumber;
+  minPriceIncrement?: TinkoffBigNumber;
 }
 
 type Wallet = Position[];
@@ -66,7 +72,10 @@ describe('bot', () => {
           figi: undefined,
           amount: 0,
           lotSize: 1,
-          price: 1,
+          price: {
+            units: 1,
+            nano: 0,
+          },
         },
         {
           pair: 'TRUR/RUB',
@@ -75,7 +84,10 @@ describe('bot', () => {
           figi: 'BBG000000001',
           amount: 1000,
           lotSize: 1,
-          price: 1,
+          price: {
+            units: 5,
+            nano: 380000000,
+          },
         },
         {
           pair: 'TMOS/RUB',
@@ -84,7 +96,10 @@ describe('bot', () => {
           figi: 'BBG333333333',
           amount: 2000,
           lotSize: 1,
-          price: 130,
+          price: {
+            units: 4,
+            nano: 176000000,
+          },
         },
       ];
     });
@@ -101,7 +116,10 @@ describe('bot', () => {
           figi: undefined,
           amount: 100000,
           lotSize: 1,
-          price: 1,
+          price: {
+            units: 1,
+            nano: 0,
+          },
         },
         {
           pair: 'USD/RUB',
@@ -110,7 +128,10 @@ describe('bot', () => {
           figi: 'BBG0013HGFT4',
           amount: 1000,
           lotSize: 1,
-          price: 1,
+          price: {
+            units: 1,
+            nano: 0,
+          },
         },
         {
           pair: 'AAPL/USD',
@@ -119,7 +140,10 @@ describe('bot', () => {
           figi: 'BBG000B9XRY4',
           amount: 2,
           lotSize: 1,
-          price: 130,
+          price: {
+            units: 130,
+            nano: 0,
+          },
         },
       ];
 
