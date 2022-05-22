@@ -7,6 +7,9 @@ import { instruments } from './instrumentsData';
 
 const debug = require('debug')('bot').extend('balancer');
 
+const USD_FIGI = 'BBG0013HGFT4';
+(global as any).INSTRUMENTS = instruments;
+
 const sumValues = obj => Object.values(obj).reduce((a: number, b: number) => a + b);
 
 interface Position {
@@ -25,8 +28,6 @@ interface DesiredWallet {
   [key: string]: Number;
 }
 
-(global as any).INSTRUMENTS = instruments;
-
 const normalizeDesire = (wallet: DesiredWallet): DesiredWallet => {
   debug('Нормализуем проценты, чтобы общая сумма была равна 100%, чтобы исключить человеческий фактор');
   debug('wallet', wallet);
@@ -42,11 +43,7 @@ const normalizeDesire = (wallet: DesiredWallet): DesiredWallet => {
 
 describe('bot', () => {
   describe('balancer', () => {
-          // const wallet = {
-      //   AAPL: amount: 2, lot, last_price
-      //   USD: 1000,
-      // };
-    it.skip('Test normalizeDezire', async () => {
+    it.skip('Тест normalizeDezire', async () => {
       const desiredWallet: DesiredWallet = {
         AAPL: 100,
         USD: 50,
@@ -56,17 +53,43 @@ describe('bot', () => {
       expect(normalizedDesire).to.deep.equal({ AAPL: 66.66666666666666, USD: 33.33333333333333 });
     });
 
-    it.skip('Test normalizeDezire', async () => {
+    it.only('Тест простой балансировки позиций только в рублях', async () => {
       const desiredWallet: DesiredWallet = {
-        AAPL: 100,
-        USD: 50,
+        TRUR: 50,
+        TMOS: 50,
       };
-      const normalizedDesire = normalizeDesire(desiredWallet);
-
-      expect(normalizedDesire).to.deep.equal({ AAPL: 66.66666666666666, USD: 33.33333333333333 });
+      const wallet: Wallet = [
+        {
+          pair: 'RUB/RUB',
+          base: 'RUB',
+          quote: 'RUB',
+          figi: undefined,
+          amount: 0,
+          lotSize: 1,
+          price: 1,
+        },
+        {
+          pair: 'TRUR/RUB',
+          base: 'TRUR',
+          quote: 'RUB',
+          figi: 'BBG000000001',
+          amount: 1000,
+          lotSize: 1,
+          price: 1,
+        },
+        {
+          pair: 'TMOS/RUB',
+          base: 'TMOS',
+          quote: 'RUB',
+          figi: 'BBG333333333',
+          amount: 2000,
+          lotSize: 1,
+          price: 130,
+        },
+      ];
     });
 
-    it.only('#1', async () => {
+    it.skip('Тест балансировки', async () => {
       // Нужно узнать лотность и последнюю ценю
       // Использовать данные последних цен
       // Лотность берется из инструмента
