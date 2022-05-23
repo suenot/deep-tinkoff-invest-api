@@ -1,20 +1,73 @@
 import 'dotenv/config';
+import { createSdk } from './invest-nodejs-grpc-sdk/src/sdk';
 import 'mocha';
 import { expect } from 'chai';
 import _ from 'lodash';
-// import uniqid from 'uniqid';
+import uniqid from 'uniqid';
 import { instruments } from './instrumentsData';
+// import { debugPort } from 'process';
+import { OrderDirection, OrderType } from './invest-nodejs-grpc-sdk/src/generated/orders';
 import { debugPort } from 'process';
+
+const { orders } = createSdk(process.env.TOKEN || '');
 
 const debug = require('debug')('bot').extend('balancer');
 
 const USD_FIGI = 'BBG0013HGFT4';
 (global as any).INSTRUMENTS = instruments;
+(global as any).ORDERS = [];
 
 const sumValues = obj => Object.values(obj).reduce((a: number, b: number) => a + b);
 
 const zeroPad = (num, places) => String(num).padStart(places, '0');
 
+const generateOrders = async (wallet: Wallet) => {
+  debug('generateOrders');
+  for (const position of wallet) {
+    await generateOrder(position);
+  }
+};
+
+const generateOrder = async (position: Position) => {
+  debug(generateOrder);
+  debug('position', position);
+  debug('Если позиция это рубль, то ничего не делаем');
+  if (position.base = 'RUB') return false;
+
+  const direction = position.toBuyLots > 0 ? OrderDirection.ORDER_DIRECTION_BUY : OrderDirection.ORDER_DIRECTION_SELL;
+  for (const i of _.range(position.toBuyLots)) {
+    debug(`Создаем однолотовый ордер #${i}`);
+    const order = {
+      accountId: process.env.ACCOUNT_ID,
+      figi: position.figi,
+      quantity: 1,
+      // price: { units: 40, nano: 0 },
+      direction,
+      orderType: OrderType.ORDER_TYPE_MARKET,
+      orderId: uniqid(),
+    };
+    debug('Отправляем ордер', order);
+
+    try {
+      const setOrder = await orders.postOrder(order);
+      debug('Успешно поставили ордер', setOrder);
+    } catch (err) {
+      console.warn('Ошибка при выставлении ордера', order);
+      debug(err);
+      console.trace(err);
+    }
+  }
+};
+
+// interface Order {
+//     accountId: process.env.ACCOUNT_ID,
+//     figi: process.env.FIGI || '',
+//     quantity: 1,
+//     price: { units: 40, nano: 0 },
+//     direction: OrderDirection.ORDER_DIRECTION_SELL,
+//     orderType: OrderType.ORDER_TYPE_LIMIT,
+//     orderId: 'd1e5d152-d36e-4019-93cc-3a5db6c14f9f',
+// }
 interface TinkoffNumber {
   units: number;
   nano: number;
@@ -227,7 +280,7 @@ describe('bot', () => {
       const desiredWallet: DesiredWallet = {
         TRUR: 50,
         TMOS: 50,
-        RUB: 0,
+        RUB: 0, // -1
       };
       const walletInfo = {
         remains: 0,
@@ -360,6 +413,12 @@ describe('bot', () => {
       }
       debug('sortedWallet', sortedWallet);
       debug('walletInfo', walletInfo);
+
+      // Для всех позиций создаем необходимые ордера
+
+        // (global as any).ORDERS.push(position);
+      generateOrders(sortedWallet);
+
 
     });
 
