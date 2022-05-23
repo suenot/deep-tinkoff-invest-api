@@ -9,13 +9,34 @@ import { instruments } from './instrumentsData';
 import { OrderDirection, OrderType } from './invest-nodejs-grpc-sdk/src/generated/orders';
 import { debugPort } from 'process';
 
-const { orders } = createSdk(process.env.TOKEN || '');
+const getPositionsCycle = async (condition) => {
+  return await new Promise(resolve => {
+    const interval = setInterval(
+      async () => {
+        const positions = await operations.getPositions({
+          accountId: process.env.ACCOUNT_ID,
+        });
+        debug(positions);
+        (global as any).POSITIONS = positions;
+        // if (condition) {
+        //   resolve('foo');
+        //   clearInterval(interval);
+        // }
+      },
+      2000);
+  });
+};
+
+getPositionsCycle(false);
+
+const { orders, operations } = createSdk(process.env.TOKEN || '');
 
 const debug = require('debug')('bot').extend('balancer');
 
 const USD_FIGI = 'BBG0013HGFT4';
 (global as any).INSTRUMENTS = instruments;
 (global as any).ORDERS = [];
+(global as any).POSITIONS = [];
 
 const sumValues = obj => Object.values(obj).reduce((a: number, b: number) => a + b);
 
