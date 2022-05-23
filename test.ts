@@ -15,7 +15,7 @@ const sumValues = obj => Object.values(obj).reduce((a: number, b: number) => a +
 
 const zeroPad = (num, places) => String(num).padStart(places, '0');
 
-interface TinkoffBigNumber {
+interface TinkoffNumber {
   units: number;
   nano: number;
 }
@@ -27,12 +27,14 @@ interface Position {
   figi?: string;
   amount?: number;
   lotSize?: number;
-  price?: TinkoffBigNumber;
+  price?: TinkoffNumber;
   priceNumber?: number;
-  lotPrice?: TinkoffBigNumber;
+  lotPrice?: TinkoffNumber;
   lotPriceNumber?: number;
-  minPriceIncrement?: TinkoffBigNumber;
+  minPriceIncrement?: TinkoffNumber;
   minPriceIncrementNumber?: number;
+  totalPrice?: TinkoffNumber;
+  totalPriceNumber?: number;
 }
 
 type Wallet = Position[];
@@ -62,15 +64,24 @@ const normalizeDesire = (wallet: DesiredWallet): DesiredWallet => {
 
 // }
 
-const convertTinkoffNumberToNumber = (n: TinkoffBigNumber): number => {
+const convertTinkoffNumberToNumber = (n: TinkoffNumber): number => {
   const result = Number(`${n.units}.${zeroPad(n.nano, 9)}`);
   debug(convertTinkoffNumberToNumber, result);
   return result;
 };
 
+const convertNumberToTinkoffNumber = (n: number): TinkoffNumber => {
+  const [units, nano] = n.toFixed(9).split('.').map(item => Number(item));
+  return {
+    units,
+    nano,
+  };
+};
+
 const addNumbersToPosition = (position: Position): Position => {
   position.priceNumber = convertTinkoffNumberToNumber(position.price);
   position.lotPriceNumber = convertTinkoffNumberToNumber(position.lotPrice);
+  position.totalPriceNumber = convertTinkoffNumberToNumber(position.totalPrice);
   // position.minPriceIncrementNumber = convertTinkoffNumberToNumber(position.minPriceIncrement);
   debug('addNumbersToPosition', position);
   return position;
@@ -100,7 +111,7 @@ describe('bot', () => {
       expect(normalizedDesire).to.deep.equal({ AAPL: 66.66666666666666, USD: 33.33333333333333 });
     });
 
-    it.only('Тест сортировки по лотности', async () => {
+    it.skip('Тест сортировки по лотности', async () => {
       // const desiredWallet: DesiredWallet = {
       //   TRUR: 50,
       //   TMOS: 50,
@@ -206,10 +217,11 @@ describe('bot', () => {
 
     });
 
-    it.skip('Тест простой балансировки позиций только в рублях', async () => {
+    it.only('Тест простой балансировки позиций только рублевых инструментов', async () => {
       const desiredWallet: DesiredWallet = {
         TRUR: 50,
         TMOS: 50,
+        RUB: 0,
       };
       const wallet: Wallet = [
         {
@@ -262,9 +274,32 @@ describe('bot', () => {
         },
       ];
 
-      // calculateLotPrice(wallet, lastBidPriceUSD); не делаю, т.к. это будет делаться на этапе записи данных из тинькова
+      // totalPrice
+      const walletWithtotalPrice = _.map(wallet, (position: Position): Position => {
+        const lotPriceNumber = convertTinkoffNumberToNumber(position.lotPrice);
+        const totalPriceNumber = lotPriceNumber * position.amount;
+        const totalPrice = convertNumberToTinkoffNumber(totalPriceNumber);
+        position.totalPrice = totalPrice;
+        return position;
+      });
+
+      const walletWithNumbers = addNumbersToWallet(walletWithtotalPrice);
+      debug('addNumbersToWallet', addNumbersToWallet);
+
+      // sortPositionsByLotPrice(wallet, 'desc') // side: desc/asc
+      const sortedWallet = _.orderBy(walletWithNumbers, ['lotPriceNumber'], ['desc']);
+      debug('sortedWallet', sortedWallet);
+
+      // Суммируем все позиции в портефле
+      const walletSum = _.sumBy(sortedWallet, 'totalPriceNumber');
+
+      for (const [desiredTicker, desiredValue] of Object.entries(desiredWallet)) {
+        // Ищем base (ticker) в wallet
+        const position = _.find(sortedWallet, { base: desiredTicker });
+        debug('position', position);
 
 
+      }
 
     });
 
