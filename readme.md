@@ -1,60 +1,54 @@
-# Deep-tinkoff-invest-api package
-This package is work in progress.
+# Стратегия
 
-### Account
-![Account scheme](./src/account/Account.drawio.svg)
+Простой балансировщик портфелей. Есть реальный и виртуальный портфель.
 
-Agent is universal name for: broker, bank and any other financial organization.
+```ts
+const wallet = {
+  AAPL: 2,
+  USD: 1000,
+};
 
-Tinkoff invest api methods:
-- [GetAccounts](https://tinkoff.github.io/investAPI/users/#getaccounts)
+const desiredWallet = {
+  AAPL: 50%,
+  USD: 50%,
+};
+```
 
-### Instrument
-![Instrument scheme](./src/instrument/Instrument.drawio.svg)
+1. Конвертируем Wallet в проценты.
 
-Tinkoff invest api methods:
-- [GetInstrumentBy](https://tinkoff.github.io/investAPI/instruments/#getinstrumentby)
-- [Shares](https://tinkoff.github.io/investAPI/instruments/#shares)
-- [Etfs](https://tinkoff.github.io/investAPI/instruments/#etfs)
+```
+walletToPercent(wallet: Wallet): Wallet
+```
 
-### Position
-![Position scheme](./src/position/Position.drawio.svg)
-Source of position can be `TinkoffProvider` GetPositions() or `Sum Handler` that sum all transaction (trades, orders, etc).
+2. Сортируем по цене лотов, чтобы балансировать сначала позиции с самыми дорогими лотами.
 
-Tinkoff invest api methods:
-- [GetPositions](https://tinkoff.github.io/investAPI/operations/#getpositions)
+3. Балансируем, начиная с позиций от дорогих лотов к дешевым.
+  - Если надо докупить акции, то пытаемся долить акции до первого перелива стакана.
+  - Считаем разницу между первым недоливом и рефересным значением и первым переливом и рефересным значением.
+  - Выбираем ту сторону, где значение будет ближе к референсному.
 
-### Candle
-![Candle scheme](./src/candle/Candle.drawio.svg)
+С продажами поступаем аналогично.
 
-Tinkoff invest api methods:
-- [GetCandles](https://tinkoff.github.io/investAPI/marketdata/#getcandles)
+4. Результат:
 
+```ts
+const balancerWallet = {
+  AAPL: 4,
+  USD: 600,
+};
 
-### Transaction
+const balancerWallet = {
+  AAPL: 2,
+  USD: -400,
+};
+```
 
-#### Operation
-Trades from the marker and from users are the same stucture.
-Operations, Orders and Trades are one union structure - Transaction.
+5. Фильтруем валюты.
 
-![Transaction scheme](./src/transaction/Transaction.drawio.svg)
+```ts
+const balancerWalletInstruments = {
+  AAPL: 2,
+};
+```
 
-Tinkoff invest api methods:
-- [GetLastTrades](https://tinkoff.github.io/investAPI/marketdata/#getlasttrades) - Метод запроса последних обезличенных сделок по инструменту.
-- [GetOperations](https://tinkoff.github.io/investAPI/operations/#getoperations) - Метод получения списка операций по счёту.
-
-#### OrderBook
-OrderBook is the Order with child orders
-Tinkoff invest api methods:
-- [GetOrderBook](https://tinkoff.github.io/investAPI/marketdata/#getorderbook)
-
-#### Order
-Orders from the marker and from users are the same stucture.
-Also can be SmartOrders (bot with grids, trailings, strategies) that can have child Orders.
-
-Tinkoff invest api methods:
-- [PostOrder](https://tinkoff.github.io/investAPI/orders/#postorder)
-- [CancelOrder](https://tinkoff.github.io/investAPI/orders/#cancelorder)
-- [GetOrderState](https://tinkoff.github.io/investAPI/orders/#getorderstate)
-- [GetOrders](https://tinkoff.github.io/investAPI/orders/#getorders)
-
+6. Отправляем приказы в работу. Отслеживаем выполнение.
