@@ -40,7 +40,7 @@ interface Position {
 type Wallet = Position[];
 
 interface DesiredWallet {
-  [key: string]: Number;
+  [key: string]: number;
 }
 
 const normalizeDesire = (wallet: DesiredWallet): DesiredWallet => {
@@ -291,13 +291,42 @@ describe('bot', () => {
       debug('sortedWallet', sortedWallet);
 
       // Суммируем все позиции в портефле
-      const walletSum = _.sumBy(sortedWallet, 'totalPriceNumber');
+      const walletSumNumber = _.sumBy(sortedWallet, 'totalPriceNumber');
+      debug('walletSumNumber', walletSumNumber);
 
-      for (const [desiredTicker, desiredValue] of Object.entries(desiredWallet)) {
+      for (const [desiredTicker, desiredPercent] of Object.entries(desiredWallet)) {
         // Ищем base (ticker) в wallet
         const position = _.find(sortedWallet, { base: desiredTicker });
         debug('position', position);
 
+        // Рассчитываем сколько в рублях будет ожидаемая доля (50%)
+        const desiredAmountNumber = walletSumNumber / 100 * desiredPercent;
+        debug('desiredAmountNumber', desiredAmountNumber);
+
+        // Высчитываем сколько лотов можно купить до желаемого таргета
+        const canBuyBeforeTargetLots = desiredAmountNumber % position.lotPriceNumber;
+        debug('canBuyBeforeTargetLots', canBuyBeforeTargetLots);
+
+        // Высчитываем стоимость позиции, которую можно купить до желаемого таргета
+        const canBuyBeforeTargetNumber = canBuyBeforeTargetLots * position.lotPriceNumber;
+        debug('canBuyBeforeTargetNumber', canBuyBeforeTargetNumber);
+
+        // Высчитываем сколько лотов можно купить за желаемым таргетом
+        const canBuyAfterTargetLots = canBuyBeforeTargetLots + position.lotPriceNumber;
+        debug('canBuyAfterTargetLots', canBuyAfterTargetLots);
+
+        // Высчитываем стоимость позиции, которую можно купить за желаемым таргетом
+        const canBuyAfterTargetNumber = canBuyAfterTargetLots * position.lotPriceNumber;
+        debug('canBuyAfterTargetNumber', canBuyAfterTargetNumber);
+
+        // Высчитываем разницу между желаемым значением и значением до таргета
+        const beforeDiffNumber = Math.abs(desiredAmountNumber - canBuyBeforeTargetNumber);
+
+        // Высчитываем разницу между желаемым значением и значением за таргетом
+        const afterDiffNumber = Math.abs(desiredAmountNumber - canBuyAfterTargetNumber);
+
+        // Выбираем меньшее число до желаемого таргета
+        const minToTarget = Math.min(beforeDiffNumber, afterDiffNumber) === beforeDiffNumber ? 'before' : 'after';
 
       }
 
