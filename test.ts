@@ -29,13 +29,22 @@ const generateOrders = async (wallet: Wallet) => {
 };
 
 const generateOrder = async (position: Position) => {
-  debug(generateOrder);
+  debug('generateOrder');
   debug('position', position);
-  debug('Если позиция это рубль, то ничего не делаем');
-  if (position.base = 'RUB') return false;
+
+  if (position.base === 'RUB') {
+    debug('Если позиция это рубль, то ничего не делаем');
+    return false;
+  }
+
+  debug('Позиция не валюта');
 
   const direction = position.toBuyLots > 0 ? OrderDirection.ORDER_DIRECTION_BUY : OrderDirection.ORDER_DIRECTION_SELL;
   for (const i of _.range(position.toBuyLots)) {
+    // Идея создавать однолотовые ордера, для того, чтобы они всегда исполнялись полностью, а не частично.
+    // Могут быть сложности с:
+    // - кол-вом разрешенных запросов к api, тогда придется реализовывать очередь.
+    // - минимальный ордер может быть больше одного лота
     debug(`Создаем однолотовый ордер #${i}`);
     const order = {
       accountId: process.env.ACCOUNT_ID,
@@ -49,8 +58,8 @@ const generateOrder = async (position: Position) => {
     debug('Отправляем ордер', order);
 
     try {
-      const setOrder = await orders.postOrder(order);
-      debug('Успешно поставили ордер', setOrder);
+      // const setOrder = await orders.postOrder(order);
+      // debug('Успешно поставили ордер', setOrder);
     } catch (err) {
       console.warn('Ошибка при выставлении ордера', order);
       debug(err);
