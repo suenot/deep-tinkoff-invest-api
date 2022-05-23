@@ -35,6 +35,12 @@ interface Position {
   minPriceIncrementNumber?: number;
   totalPrice?: TinkoffNumber;
   totalPriceNumber?: number;
+  desiredAmountNumber?: number;
+  canBuyBeforeTargetLots?: number;
+  canBuyBeforeTargetNumber?: number;
+  beforeDiffNumber?: number;
+  toBuyLots?: number;
+  toBuyNumber?: number;
 }
 
 type Wallet = Position[];
@@ -223,6 +229,9 @@ describe('bot', () => {
         TMOS: 50,
         RUB: 0,
       };
+      const walletInfo = {
+        remains: 0,
+      };
       const wallet: Wallet = [
         {
           pair: 'RUB/RUB',
@@ -296,109 +305,131 @@ describe('bot', () => {
 
       for (const [desiredTicker, desiredPercent] of Object.entries(desiredWallet)) {
         // Ищем base (ticker) в wallet
-        const position = _.find(sortedWallet, { base: desiredTicker });
+        const positionIndex = _.findIndex(sortedWallet, { base: desiredTicker });
+        const position: Position = sortedWallet[positionIndex];
         debug('position', position);
 
-        // Рассчитываем сколько в рублях будет ожидаемая доля (50%)
+        // Рассчитываем сколько в рублях будет ожидаемая доля (допустим, 50%)
         const desiredAmountNumber = walletSumNumber / 100 * desiredPercent;
         debug('desiredAmountNumber', desiredAmountNumber);
+        position.desiredAmountNumber = desiredAmountNumber;
 
         // Высчитываем сколько лотов можно купить до желаемого таргета
-        const canBuyBeforeTargetLots = desiredAmountNumber % position.lotPriceNumber;
+        const canBuyBeforeTargetLots = Math.trunc(desiredAmountNumber / position.lotPriceNumber);
         debug('canBuyBeforeTargetLots', canBuyBeforeTargetLots);
+        position.canBuyBeforeTargetLots = canBuyBeforeTargetLots;
 
         // Высчитываем стоимость позиции, которую можно купить до желаемого таргета
         const canBuyBeforeTargetNumber = canBuyBeforeTargetLots * position.lotPriceNumber;
         debug('canBuyBeforeTargetNumber', canBuyBeforeTargetNumber);
+        position.canBuyBeforeTargetNumber = canBuyBeforeTargetNumber;
 
-        // Высчитываем сколько лотов можно купить за желаемым таргетом
-        const canBuyAfterTargetLots = canBuyBeforeTargetLots + position.lotPriceNumber;
-        debug('canBuyAfterTargetLots', canBuyAfterTargetLots);
+        // // Высчитываем сколько лотов можно купить за желаемым таргетом
+        // const canBuyAfterTargetLots = canBuyBeforeTargetLots + position.lotPriceNumber;
+        // debug('canBuyAfterTargetLots', canBuyAfterTargetLots);
 
-        // Высчитываем стоимость позиции, которую можно купить за желаемым таргетом
-        const canBuyAfterTargetNumber = canBuyAfterTargetLots * position.lotPriceNumber;
-        debug('canBuyAfterTargetNumber', canBuyAfterTargetNumber);
+        // // Высчитываем стоимость позиции, которую можно купить за желаемым таргетом
+        // const canBuyAfterTargetNumber = canBuyAfterTargetLots * position.lotPriceNumber;
+        // debug('canBuyAfterTargetNumber', canBuyAfterTargetNumber);
 
-        // Высчитываем разницу между желаемым значением и значением до таргета
+        // Высчитываем разницу между желаемым значением и значением до таргета. Нераспеределенный остаток.
         const beforeDiffNumber = Math.abs(desiredAmountNumber - canBuyBeforeTargetNumber);
+        debug('beforeDiffNumber', beforeDiffNumber);
+        position.beforeDiffNumber = beforeDiffNumber;
 
-        // Высчитываем разницу между желаемым значением и значением за таргетом
-        const afterDiffNumber = Math.abs(desiredAmountNumber - canBuyAfterTargetNumber);
+        debug('Суммируем остатки'); // TODO: нужно определить валюту и записать остаток в этой валюте
+        walletInfo.remains += beforeDiffNumber; // пока в рублях
 
-        // Выбираем меньшее число до желаемого таргета
-        const minToTarget = Math.min(beforeDiffNumber, afterDiffNumber) === beforeDiffNumber ? 'before' : 'after';
+        // // Высчитываем разницу между желаемым значением и значением за таргетом
+        // const afterDiffNumber = Math.abs(desiredAmountNumber - canBuyAfterTargetNumber);
+        // debug('afterDiffNumber', afterDiffNumber);
 
+        // // Выбираем меньшее число до желаемого таргета
+        // const minToTarget = Math.min(beforeDiffNumber, afterDiffNumber) === beforeDiffNumber ? 'before' : 'after';
+        // debug('minToTarget', minToTarget);
+
+        debug('Сколько нужно купить (может быть отрицательным, тогда нужно продать)');
+        const toBuyNumber = canBuyBeforeTargetNumber - position.totalPriceNumber;
+        debug('toBuyNumber', toBuyNumber);
+        position.toBuyNumber = toBuyNumber;
+
+        debug('Сколько нужно купить лотов (может быть отрицательным, тогда нужно продать)');
+        const toBuyLots = canBuyBeforeTargetLots - (position.amount / position.lotSize);
+        debug('toBuyLots', toBuyLots);
+        position.toBuyLots = toBuyLots;
       }
+      debug('sortedWallet', sortedWallet);
+      debug('walletInfo', walletInfo);
 
     });
 
-    it.skip('Тест балансировки', async () => {
-      // Нужно узнать лотность и последнюю ценю
-      // Использовать данные последних цен
-      // Лотность берется из инструмента
-      const wallet: Wallet = [
-        {
-          pair: 'RUB/RUB',
-          base: 'RUB',
-          quote: 'RUB',
-          figi: undefined,
-          amount: 100000,
-          lotSize: 1,
-          price: {
-            units: 1,
-            nano: 0,
-          },
-        },
-        {
-          pair: 'USD/RUB',
-          base: 'USD',
-          quote: 'RUB',
-          figi: 'BBG0013HGFT4',
-          amount: 1000,
-          lotSize: 1,
-          price: {
-            units: 1,
-            nano: 0,
-          },
-        },
-        {
-          pair: 'AAPL/USD',
-          base: 'AAPL',
-          quote: 'USD',
-          figi: 'BBG000B9XRY4',
-          amount: 2,
-          lotSize: 1,
-          price: {
-            units: 130,
-            nano: 0,
-          },
-        },
-      ];
+    // it.skip('Тест балансировки', async () => {
+    //   // Нужно узнать лотность и последнюю ценю
+    //   // Использовать данные последних цен
+    //   // Лотность берется из инструмента
+    //   const wallet: Wallet = [
+    //     {
+    //       pair: 'RUB/RUB',
+    //       base: 'RUB',
+    //       quote: 'RUB',
+    //       figi: undefined,
+    //       amount: 100000,
+    //       lotSize: 1,
+    //       price: {
+    //         units: 1,
+    //         nano: 0,
+    //       },
+    //     },
+    //     {
+    //       pair: 'USD/RUB',
+    //       base: 'USD',
+    //       quote: 'RUB',
+    //       figi: 'BBG0013HGFT4',
+    //       amount: 1000,
+    //       lotSize: 1,
+    //       price: {
+    //         units: 1,
+    //         nano: 0,
+    //       },
+    //     },
+    //     {
+    //       pair: 'AAPL/USD',
+    //       base: 'AAPL',
+    //       quote: 'USD',
+    //       figi: 'BBG000B9XRY4',
+    //       amount: 2,
+    //       lotSize: 1,
+    //       price: {
+    //         units: 130,
+    //         nano: 0,
+    //       },
+    //     },
+    //   ];
 
-      const desiredWallet = {
-        AAPL: 100,
-        USD: 50,
-        RUB: 10,
-      };
-      const normalizedDesire = normalizeDesire(desiredWallet);
+    //   const desiredWallet = {
+    //     AAPL: 100,
+    //     USD: 50,
+    //     RUB: 10,
+    //   };
+    //   const normalizedDesire = normalizeDesire(desiredWallet);
 
-      // const lastBidPriceUsd = getLastBidPrice('USD');
+    //   // const lastBidPriceUsd = getLastBidPrice('USD');
 
-      // calculateTotalInUSD(wallet, lastBidPriceUSD);
+    //   // calculateTotalInUSD(wallet, lastBidPriceUSD);
 
-      // calculateLotPriceInUsd(wallet, lastBidPriceUSD);
+    //   // calculateLotPriceInUsd(wallet, lastBidPriceUSD);
 
 
 
-      // sortPositionsByLotPrice(wallet, side) // side: desc/asc
+    //   // sortPositionsByLotPrice(wallet, side) // side: desc/asc
 
-      // balanceFlow(wallet, desiredWallet)
-        // for(desiredPosition of desiredWallet) {
-        //   find wallet[desiredPosition]
-        //   recalculatePosition()
-        // }
+    //   // balanceFlow(wallet, desiredWallet)
+    //     // for(desiredPosition of desiredWallet) {
+    //     //   find wallet[desiredPosition]
+    //     //   recalculatePosition()
+    //     // }
 
-      expect(undefined).to.equal(undefined);
-    });
+    //   expect(undefined).to.equal(undefined);
+    // });
   });
 });
