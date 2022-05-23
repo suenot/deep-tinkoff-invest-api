@@ -2,7 +2,6 @@
   "name": "deep-tinkoff-invest-api",
   "version": "1.0.0",
   "description": "Trading bot",
-  "main": "index.ts",
   "repository": {
     "type": "git",
     "url": "https://github.com/suenot/deep-tinkoff-invest-api.git"
@@ -14,40 +13,41 @@
     "bot"
   ],
   "scripts": {
-    "start": "ts-node index.ts",
+    "start": "tsc && node dist/index.js",
+    "start-old": "ts-node index.ts",
     "test": "DEBUG=\"*\" ts-mocha --timeout 10000 --project ./tsconfig.json test.ts"
   },
   "author": "Eugen Soloviov",
   "license": "Apache-2.0",
+  "type": "module",
   "dependencies": {
-    "@sentry/node": "^6.2.5",
-    "@sentry/tracing": "^6.2.5",
     "@types/mocha": "^5.2.7",
     "@types/node": "^12.12.8",
-    "apollo-cache-inmemory": "^1.6.3",
-    "apollo-client": "^2.6.4",
-    "apollo-link-context": "^1.0.19",
-    "apollo-link-http": "^1.5.16",
-    "apollo-server-express": "^2.15.1",
-    "@deep-foundation/deeplinks": "0.0.55",
-    "@deep-foundation/hasura": "^0.0.15",
+    "apollo-server": "^3.7.0",
+    "chai": "^4.2.0",
     "dotenv": "^16.0.1",
-    "graphql": "^14.5.8",
     "graphql-tag": "^2.10.1",
-    "express": "^4.16.4",
     "lodash": "^4.17.21",
+    "mocha": "^6.2.2",
     "react": "^18.1.0",
+    "request": "^2.88.0",
+    "request-promise": "^4.2.5",
     "subscriptions-transport-ws": "^0.9.19",
-    "uniqid": "^5.1.0",
+    "ts-mocha": "^6.0.0",
     "ts-node": "^8.5.2",
     "tslint": "^5.20.1",
     "tslint-config-airbnb": "^5.11.2",
     "tslint-eslint-rules": "^5.4.0",
     "typescript": "^3.8.3",
-    "mocha": "^6.2.2",
-    "ts-mocha": "^6.0.0",
-    "chai": "^4.2.0"
-  },
-  "devDependencies": {
+    "uniqid": "^5.1.0",
+    "@graphql-tools/schema": "^7.1.5",
+    "@types/ws": "^8.2.2",
+    "apollo-server-core": "3.6.2",
+    "apollo-server-express": "3.6.2",
+    "express": "^4.17.1",
+    "graphql": "^15.5.1",
+    "graphql-subscriptions": "^1.2.1",
+    "graphql-ws": "^5.5.5",
+    "ws": "^8.4.2"
   }
 }

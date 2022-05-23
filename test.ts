@@ -84,9 +84,9 @@ const addNumbersToWallet = (wallet: Wallet): Wallet => {
   return wallet;
 };
 
-const sortByLotPrice = (wallets: Wallet[]) => {
+// const sortByLotPrice = (wallets: Wallet[]) => {
 
-};
+// };
 
 describe('bot', () => {
   describe('balancer', () => {
@@ -155,8 +155,54 @@ describe('bot', () => {
           },
         },
       ];
-      addNumbersToWallet(wallet);
+
+      const walletWithNumbers = addNumbersToWallet(wallet);
       debug('addNumbersToWallet', addNumbersToWallet);
+
+      // sortPositionsByLotPrice(wallet, 'desc') // side: desc/asc
+      const sortedWallet = _.orderBy(walletWithNumbers, ['lotPriceNumber'], ['desc']);
+      debug('sortedWallet', sortedWallet);
+
+      expect(sortedWallet).to.deep.equal(
+        [
+          {
+            pair: 'TRUR/RUB',
+            base: 'TRUR',
+            quote: 'RUB',
+            figi: 'BBG000000001',
+            amount: 1000,
+            lotSize: 1,
+            price: { units: 5, nano: 380000000 },
+            lotPrice: { units: 5, nano: 380000000 },
+            priceNumber: 5.38,
+            lotPriceNumber: 5.38
+          },
+          {
+            pair: 'TMOS/RUB',
+            base: 'TMOS',
+            quote: 'RUB',
+            figi: 'BBG333333333',
+            amount: 2000,
+            lotSize: 1,
+            price: { units: 4, nano: 176000000 },
+            lotPrice: { units: 4, nano: 176000000 },
+            priceNumber: 4.176,
+            lotPriceNumber: 4.176
+          },
+          {
+            pair: 'RUB/RUB',
+            base: 'RUB',
+            quote: 'RUB',
+            figi: undefined,
+            amount: 0,
+            lotSize: 1,
+            price: { units: 1, nano: 0 },
+            lotPrice: { units: 1, nano: 0 },
+            priceNumber: 1,
+            lotPriceNumber: 1
+          },
+        ],
+      );
 
     });
 
@@ -216,6 +262,10 @@ describe('bot', () => {
         },
       ];
 
+      // calculateLotPrice(wallet, lastBidPriceUSD); не делаю, т.к. это будет делаться на этапе записи данных из тинькова
+
+
+
     });
 
     it.skip('Тест балансировки', async () => {
@@ -273,6 +323,8 @@ describe('bot', () => {
       // calculateTotalInUSD(wallet, lastBidPriceUSD);
 
       // calculateLotPriceInUsd(wallet, lastBidPriceUSD);
+
+
 
       // sortPositionsByLotPrice(wallet, side) // side: desc/asc
 
