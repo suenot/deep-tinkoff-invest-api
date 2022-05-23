@@ -6,71 +6,88 @@ import _ from 'lodash';
 import uniqid from 'uniqid';
 import { instruments } from './instrumentsData';
 import { OrderDirection, OrderType } from './invest-nodejs-grpc-sdk/src/generated/orders';
+import { PortfolioPosition } from './invest-nodejs-grpc-sdk/src/generated/operations';
 
-const USD_FIGI = 'BBG0013HGFT4';
+// const USD_FIGI = 'BBG0013HGFT4';
+
 (global as any).INSTRUMENTS = instruments;
-(global as any).ORDERS = [];
+// (global as any).ORDERS = [];
 (global as any).POSITIONS = [];
 
 const getPositionsCycle = async () => {
   return await new Promise(() => {
     const interval = setInterval(
       async () => {
+
+        let portfolio: any;
+        let portfolioPositions: any;
+        try {
+          debug('Получение портфолио');
+          portfolio = await operations.getPortfolio({
+            accountId: process.env.ACCOUNT_ID,
+          });
+          debug('portfolio', portfolio);
+
+          portfolioPositions = portfolio.positions;
+          debug('portfolioPositions', portfolioPositions);
+        } catch (err) {
+          console.warn('Ошибка при получении портфолио');
+          debug(err);
+          console.trace(err);
+        }
+
         let positions: any;
         try {
+          debug('Получение позиций');
           positions = await operations.getPositions({
             accountId: process.env.ACCOUNT_ID,
           });
+          debug('positions', positions);
         } catch (err) {
           console.warn('Ошибка при получении позиций');
           debug(err);
           console.trace(err);
         }
 
-        debug(positions);
+        const coreWallet: Wallet = [];
 
-        let coreWallet: Wallet = [];
-        for (const position of positions) {
-          for (const currency of position.money) {
-            const corePosition = {
-              pair: `${currency.currency.toUpperCase()}/${currency.currency.toUpperCase()}`,
-              base: currency.currency.toUpperCase(),
-              quote: currency.currency.toUpperCase(),
-              figi: undefined,
-              amount: 0,
-              lotSize: 1,
-              price: {
-                units: 1,
-                nano: 0,
-              },
-              lotPrice: {
-                units: 1,
-                nano: 0,
-              },
-            };
-            coreWallet.push(corePosition);
-          }
-          for (const security of position.securities) {
-            const instrument =  _.find((global as any).INSTRUMENTS,  { figi: security.figi });
-            const corePosition = {
-              pair: `${instrument.ticker}/${instrument.currency.toUpperCase()}`,
-              base: instrument.currency.toUpperCase(),
-              quote: instrument.currency.toUpperCase(),
-              figi: security.figi,
-              amount: security.amount,
-              lotSize: instrument.lot,
-              price: {
-                units: 1,
-                nano: 0,
-              },
-              lotPrice: {
-                units: 1,
-                nano: 0,
-              },
-            };
-            coreWallet.push(corePosition);
-          }
+        debug('Добавляем валюты в Wallet');
+        for (const currency of positions.money) {
+          const corePosition = {
+            pair: `${currency.currency.toUpperCase()}/${currency.currency.toUpperCase()}`,
+            base: currency.currency.toUpperCase(),
+            quote: currency.currency.toUpperCase(),
+            figi: undefined,
+            amount: currency.balance,
+            lotSize: 1,
+            price: {
+              units: 1,
+              nano: 0,
+            },
+            lotPrice: {
+              units: 1,
+              nano: 0,
+            },
+          };
+          debug('corePosition', corePosition);
+          coreWallet.push(corePosition);
+        }
 
+        debug('');
+        for (const position of portfolioPositions) {
+          const instrument =  _.find((global as any).INSTRUMENTS,  { figi: position.figi });
+          const corePosition = {
+            pair: `${instrument.ticker}/${instrument.currency.toUpperCase()}`,
+            base: instrument.ticker,
+            quote: instrument.currency.toUpperCase(),
+            figi: position.figi,
+            amount: convertTinkoffNumberToNumber(position.quantity),
+            lotSize: instrument.lot,
+            price: position.currentPrice,
+            lotPrice: convertNumberToTinkoffNumber(convertTinkoffNumberToNumber(position.quantity) * instrument.lot),
+          };
+          debug('corePosition', corePosition);
+          coreWallet.push(corePosition);
         }
 
         debug(coreWallet);
@@ -147,6 +164,7 @@ const generateOrder = async (position: Position) => {
 //     orderId: 'd1e5d152-d36e-4019-93cc-3a5db6c14f9f',
 // }
 interface TinkoffNumber {
+  currency?: string;
   units: number;
   nano: number;
 }
