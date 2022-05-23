@@ -5,38 +5,86 @@ import { expect } from 'chai';
 import _ from 'lodash';
 import uniqid from 'uniqid';
 import { instruments } from './instrumentsData';
-// import { debugPort } from 'process';
 import { OrderDirection, OrderType } from './invest-nodejs-grpc-sdk/src/generated/orders';
-import { debugPort } from 'process';
-
-const getPositionsCycle = async (condition) => {
-  return await new Promise(resolve => {
-    const interval = setInterval(
-      async () => {
-        const positions = await operations.getPositions({
-          accountId: process.env.ACCOUNT_ID,
-        });
-        debug(positions);
-        (global as any).POSITIONS = positions;
-        // if (condition) {
-        //   resolve('foo');
-        //   clearInterval(interval);
-        // }
-      },
-      2000);
-  });
-};
-
-getPositionsCycle(false);
-
-const { orders, operations } = createSdk(process.env.TOKEN || '');
-
-const debug = require('debug')('bot').extend('balancer');
 
 const USD_FIGI = 'BBG0013HGFT4';
 (global as any).INSTRUMENTS = instruments;
 (global as any).ORDERS = [];
 (global as any).POSITIONS = [];
+
+const getPositionsCycle = async () => {
+  return await new Promise(() => {
+    const interval = setInterval(
+      async () => {
+        let positions: any;
+        try {
+          positions = await operations.getPositions({
+            accountId: process.env.ACCOUNT_ID,
+          });
+        } catch (err) {
+          console.warn('Ошибка при получении позиций');
+          debug(err);
+          console.trace(err);
+        }
+
+        debug(positions);
+
+        let coreWallet: Wallet = [];
+        for (const position of positions) {
+          for (const currency of position.money) {
+            const corePosition = {
+              pair: `${currency.currency.toUpperCase()}/${currency.currency.toUpperCase()}`,
+              base: currency.currency.toUpperCase(),
+              quote: currency.currency.toUpperCase(),
+              figi: undefined,
+              amount: 0,
+              lotSize: 1,
+              price: {
+                units: 1,
+                nano: 0,
+              },
+              lotPrice: {
+                units: 1,
+                nano: 0,
+              },
+            };
+            coreWallet.push(corePosition);
+          }
+          for (const security of position.securities) {
+            const instrument =  _.find((global as any).INSTRUMENTS,  { figi: security.figi });
+            const corePosition = {
+              pair: `${instrument.ticker}/${instrument.currency.toUpperCase()}`,
+              base: instrument.currency.toUpperCase(),
+              quote: instrument.currency.toUpperCase(),
+              figi: security.figi,
+              amount: security.amount,
+              lotSize: instrument.lot,
+              price: {
+                units: 1,
+                nano: 0,
+              },
+              lotPrice: {
+                units: 1,
+                nano: 0,
+              },
+            };
+            coreWallet.push(corePosition);
+          }
+
+        }
+
+        debug(coreWallet);
+
+        (global as any).POSITIONS = positions;
+      },
+      2000);
+  });
+};
+getPositionsCycle();
+
+const { orders, operations } = createSdk(process.env.TOKEN || '');
+
+const debug = require('debug')('bot').extend('balancer');
 
 const sumValues = obj => Object.values(obj).reduce((a: number, b: number) => a + b);
 
@@ -79,10 +127,10 @@ const generateOrder = async (position: Position) => {
     debug('Отправляем ордер', order);
 
     try {
-      // const setOrder = await orders.postOrder(order);
-      // debug('Успешно поставили ордер', setOrder);
+      const setOrder = await orders.postOrder(order);
+      debug('Успешно поставили ордер', setOrder);
     } catch (err) {
-      console.warn('Ошибка при выставлении ордера', order);
+      console.warn('Ошибка при выставлении ордера');
       debug(err);
       console.trace(err);
     }
