@@ -510,81 +510,9 @@ describe('bot', () => {
       debug('sortedWallet', sortedWallet);
       debug('walletInfo', walletInfo);
 
-      // Для всех позиций создаем необходимые ордера
-
-        // (global as any).ORDERS.push(position);
+      debug('Для всех позиций создаем необходимые ордера');
       generateOrders(sortedWallet);
 
-
     });
-
-    // it.skip('Тест балансировки', async () => {
-    //   // Нужно узнать лотность и последнюю ценю
-    //   // Использовать данные последних цен
-    //   // Лотность берется из инструмента
-    //   const wallet: Wallet = [
-    //     {
-    //       pair: 'RUB/RUB',
-    //       base: 'RUB',
-    //       quote: 'RUB',
-    //       figi: undefined,
-    //       amount: 100000,
-    //       lotSize: 1,
-    //       price: {
-    //         units: 1,
-    //         nano: 0,
-    //       },
-    //     },
-    //     {
-    //       pair: 'USD/RUB',
-    //       base: 'USD',
-    //       quote: 'RUB',
-    //       figi: 'BBG0013HGFT4',
-    //       amount: 1000,
-    //       lotSize: 1,
-    //       price: {
-    //         units: 1,
-    //         nano: 0,
-    //       },
-    //     },
-    //     {
-    //       pair: 'AAPL/USD',
-    //       base: 'AAPL',
-    //       quote: 'USD',
-    //       figi: 'BBG000B9XRY4',
-    //       amount: 2,
-    //       lotSize: 1,
-    //       price: {
-    //         units: 130,
-    //         nano: 0,
-    //       },
-    //     },
-    //   ];
-
-    //   const desiredWallet = {
-    //     AAPL: 100,
-    //     USD: 50,
-    //     RUB: 10,
-    //   };
-    //   const normalizedDesire = normalizeDesire(desiredWallet);
-
-    //   // const lastBidPriceUsd = getLastBidPrice('USD');
-
-    //   // calculateTotalInUSD(wallet, lastBidPriceUSD);
-
-    //   // calculateLotPriceInUsd(wallet, lastBidPriceUSD);
-
-
-
-    //   // sortPositionsByLotPrice(wallet, side) // side: desc/asc
-
-    //   // balanceFlow(wallet, desiredWallet)
-    //     // for(desiredPosition of desiredWallet) {
-    //     //   find wallet[desiredPosition]
-    //     //   recalculatePosition()
-    //     // }
-
-    //   expect(undefined).to.equal(undefined);
-    // });
   });
 });

@@ -8,6 +8,8 @@ import { instruments } from './instrumentsData';
 import { OrderDirection, OrderType } from './invest-nodejs-grpc-sdk/src/generated/orders';
 import { PortfolioPosition } from './invest-nodejs-grpc-sdk/src/generated/operations';
 
+const sleep = (ms: any) => new Promise(resolve => setTimeout(resolve, ms));
+
 (global as any).INSTRUMENTS = instruments;
 (global as any).POSITIONS = [];
 
@@ -55,7 +57,7 @@ const getPositionsCycle = async () => {
             base: currency.currency.toUpperCase(),
             quote: currency.currency.toUpperCase(),
             figi: undefined,
-            amount: currency.units, // TODO: + nano
+            amount: currency.units,
             lotSize: 1,
             price: {
               units: 1,
@@ -90,6 +92,8 @@ const getPositionsCycle = async () => {
         debug(coreWallet);
 
         (global as any).POSITIONS = positions;
+        await main();
+        await sleep(60000);
       },
       10000);
   });
@@ -148,6 +152,7 @@ const generateOrder = async (position: Position) => {
       debug(err);
       console.trace(err);
     }
+    await sleep(1000);
   }
 };
 interface TinkoffNumber {
@@ -318,8 +323,6 @@ const main = async () => {
   debug('sortedWallet', sortedWallet);
   debug('walletInfo', walletInfo);
 
-  // Для всех позиций создаем необходимые ордера
-
-  // (global as any).ORDERS.push(position);
+  debug('Для всех позиций создаем необходимые ордера');
   generateOrders(sortedWallet);
 };
