@@ -13,13 +13,11 @@
     "bot"
   ],
   "scripts": {
-    "start": "tsc && node dist/index.js",
-    "start-old": "ts-node index.ts",
+    "start": "ts-node index.ts",
     "test": "DEBUG=\"*\" ts-mocha --timeout 10000 --project ./tsconfig.json test.ts"
   },
   "author": "Eugen Soloviov",
   "license": "Apache-2.0",
-  "type": "module",
   "dependencies": {
     "@types/mocha": "^5.2.7",
     "@types/node": "^12.12.8",
