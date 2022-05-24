@@ -335,12 +335,12 @@ const main = async (positions) => {
     debug('desiredAmountNumber', desiredAmountNumber);
     position.desiredAmountNumber = desiredAmountNumber;
 
-    // Высчитываем сколько лотов можно купить до желаемого таргета
+    debug('Высчитываем сколько лотов можно купить до желаемого таргета');
     const canBuyBeforeTargetLots = Math.trunc(desiredAmountNumber / position.lotPriceNumber);
     debug('canBuyBeforeTargetLots', canBuyBeforeTargetLots);
     position.canBuyBeforeTargetLots = canBuyBeforeTargetLots;
 
-    // Высчитываем стоимость позиции, которую можно купить до желаемого таргета
+    debug('Высчитываем стоимость позиции, которую можно купить до желаемого таргета');
     const canBuyBeforeTargetNumber = canBuyBeforeTargetLots * position.lotPriceNumber;
     debug('canBuyBeforeTargetNumber', canBuyBeforeTargetNumber);
     position.canBuyBeforeTargetNumber = canBuyBeforeTargetNumber;
@@ -353,7 +353,7 @@ const main = async (positions) => {
     // const canBuyAfterTargetNumber = canBuyAfterTargetLots * position.lotPriceNumber;
     // debug('canBuyAfterTargetNumber', canBuyAfterTargetNumber);
 
-    // Высчитываем разницу между желаемым значением и значением до таргета. Нераспеределенный остаток.
+    debug('Высчитываем разницу между желаемым значением и значением до таргета. Нераспеределенный остаток.');
     const beforeDiffNumber = Math.abs(desiredAmountNumber - canBuyBeforeTargetNumber);
     debug('beforeDiffNumber', beforeDiffNumber);
     position.beforeDiffNumber = beforeDiffNumber;
