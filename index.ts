@@ -91,8 +91,8 @@ const getPositionsCycle = async () => {
 
         debug(coreWallet);
 
-        (global as any).POSITIONS = positions;
-        await main();
+        (global as any).POSITIONS = coreWallet;
+        await main(coreWallet);
         await sleep(60000);
       },
       10000);
@@ -127,33 +127,61 @@ const generateOrder = async (position: Position) => {
   debug('Позиция не валюта');
 
   const direction = position.toBuyLots > 0 ? OrderDirection.ORDER_DIRECTION_BUY : OrderDirection.ORDER_DIRECTION_SELL;
-  for (const i of _.range(position.toBuyLots)) {
-    // Идея создавать однолотовые ордера, для того, чтобы они всегда исполнялись полностью, а не частично.
-    // Могут быть сложности с:
-    // - кол-вом разрешенных запросов к api, тогда придется реализовывать очередь.
-    // - минимальный ордер может быть больше одного лота
-    debug(`Создаем однолотовый ордер #${i}`);
-    const order = {
-      accountId: process.env.ACCOUNT_ID,
-      figi: position.figi,
-      quantity: 1,
-      // price: { units: 40, nano: 0 },
-      direction,
-      orderType: OrderType.ORDER_TYPE_MARKET,
-      orderId: uniqid(),
-    };
-    debug('Отправляем ордер', order);
-
-    try {
-      const setOrder = await orders.postOrder(order);
-      debug('Успешно поставили ордер', setOrder);
-    } catch (err) {
-      console.warn('Ошибка при выставлении ордера');
-      debug(err);
-      console.trace(err);
-    }
-    await sleep(1000);
+  if (position.toBuyLots === 0) {
+    debug('Выставление нулевого ордера. Не имеет смысла выполнять.');
+    return 0;
   }
+  // for (const i of _.range(position.toBuyLots)) {
+  //   // Идея создавать однолотовые ордера, для того, чтобы они всегда исполнялись полностью, а не частично.
+  //   // Могут быть сложности с:
+  //   // - кол-вом разрешенных запросов к api, тогда придется реализовывать очередь.
+  //   // - минимальный ордер может быть больше одного лота
+  //   debug(`Создаем однолотовый ордер #${i} of ${_.range(position.toBuyLots).length}`);
+  //   const order = {
+  //     accountId: process.env.ACCOUNT_ID,
+  //     figi: position.figi,
+  //     quantity: 1,
+  //     // price: { units: 40, nano: 0 },
+  //     direction,
+  //     orderType: OrderType.ORDER_TYPE_MARKET,
+  //     orderId: uniqid(),
+  //   };
+  //   debug('Отправляем ордер', order);
+
+  //   try {
+  //     const setOrder = await orders.postOrder(order);
+  //     debug('Успешно поставили ордер', setOrder);
+  //   } catch (err) {
+  //     debug('Ошибка при выставлении ордера');
+  //     debug(err);
+  //     console.trace(err);
+  //   }
+  //   await sleep(1000);
+  // }
+
+  // Или можно создавать обычные ордера
+  debug('Создаем рыночный ордер');
+  const order = {
+    accountId: process.env.ACCOUNT_ID,
+    figi: position.figi,
+    quantity: Math.abs(position.toBuyLots),
+    // price: { units: 40, nano: 0 },
+    direction,
+    orderType: OrderType.ORDER_TYPE_MARKET,
+    orderId: uniqid(),
+  };
+  debug('Отправляем рыночный ордер', order);
+
+  try {
+    const setOrder = await orders.postOrder(order);
+    debug('Успешно поставили ордер', setOrder);
+  } catch (err) {
+    debug('Ошибка при выставлении ордера');
+    debug(err);
+    console.trace(err);
+  }
+  await sleep(1000);
+
 };
 interface TinkoffNumber {
   currency?: string;
@@ -204,7 +232,8 @@ const normalizeDesire = (wallet: DesiredWallet): DesiredWallet => {
 };
 
 const convertTinkoffNumberToNumber = (n: TinkoffNumber): number => {
-  const result = Number(`${n.units}.${zeroPad(n.nano, 9)}`);
+  debug('n', n);
+  const result = Number(`${n.units}.${zeroPad(n?.nano, 9)}`);
   debug(convertTinkoffNumberToNumber, result);
   return result;
 };
@@ -234,44 +263,74 @@ const addNumbersToWallet = (wallet: Wallet): Wallet => {
   return wallet;
 };
 
-const main = async () => {
+const main = async (positions) => {
 
   const desiredWallet: DesiredWallet = {
+    // TMOS: 50,
+    RUB: 50, // -1
     TRUR: 50,
-    TMOS: 50,
-    RUB: 0, // -1
   };
   const walletInfo = {
     remains: 0,
   };
 
   // totalPrice
-  const walletWithtotalPrice = _.map((global as any).POSITIONS, (position: Position): Position => {
+  const walletWithtotalPrice = _.map(positions, (position: Position): Position => {
+    debug('walletWithtotalPrice: map start: position', position);
     const lotPriceNumber = convertTinkoffNumberToNumber(position.lotPrice);
-    const totalPriceNumber = lotPriceNumber * position.amount;
+    debug('position.amount, position.priceNumber');
+    debug(position.amount, position.priceNumber);
+    const totalPriceNumber = convertTinkoffNumberToNumber(position.price) * position.amount; // position.amount * position.priceNumber; //
     const totalPrice = convertNumberToTinkoffNumber(totalPriceNumber);
     position.totalPrice = totalPrice;
+    debug('walletWithtotalPrice: map end: position', position);
     return position;
   });
 
   const walletWithNumbers = addNumbersToWallet(walletWithtotalPrice);
   debug('addNumbersToWallet', addNumbersToWallet);
 
-  // sortPositionsByLotPrice(wallet, 'desc') // side: desc/asc
   const sortedWallet = _.orderBy(walletWithNumbers, ['lotPriceNumber'], ['desc']);
   debug('sortedWallet', sortedWallet);
 
-  // Суммируем все позиции в портефле
+  debug('Суммируем все позиции в портефле');
   const walletSumNumber = _.sumBy(sortedWallet, 'totalPriceNumber');
+  debug(sortedWallet);
   debug('walletSumNumber', walletSumNumber);
 
   for (const [desiredTicker, desiredPercent] of Object.entries(desiredWallet)) {
     // Ищем base (ticker) в wallet
-    const positionIndex = _.findIndex(sortedWallet, { base: desiredTicker });
-    const position: Position = sortedWallet[positionIndex];
+    let positionIndex = _.findIndex(sortedWallet, { base: desiredTicker });
+    debug('positionIndex', positionIndex);
+
+    let position: Position;
+    if (positionIndex === -1) {
+      debug('В портфеле нету тикера из DesireWallet. Создаем.');
+      const newPosition = {
+        pair: `${desiredTicker}/RUB`,
+        base: desiredTicker,
+        quote: 'RUB',
+        figi: _.find((global as any).INSTRUMENTS, { ticker: desiredTicker })?.figi,
+        amount: 0,
+        lotSize: 1,
+        price: { units: 1, nano: 0 }, // TODO
+        lotPrice: { units: 1, nano: 0 },
+        totalPrice: { units: 1, nano: 0 },
+        priceNumber: 1,
+        lotPriceNumber: 1,
+        totalPriceNumber: 0,
+      };
+      sortedWallet.push(newPosition);
+      positionIndex = _.findIndex(sortedWallet, { base: desiredTicker });
+    }
+
+    debug('В портфеле есть тикера из DesireWallet');
+    position = sortedWallet[positionIndex];
     debug('position', position);
 
-    // Рассчитываем сколько в рублях будет ожидаемая доля (допустим, 50%)
+    debug('Рассчитываем сколько в рублях будет ожидаемая доля (допустим, 50%)');
+    debug('walletSumNumber', walletSumNumber);
+    debug('desiredPercent', desiredPercent);
     const desiredAmountNumber = walletSumNumber / 100 * desiredPercent;
     debug('desiredAmountNumber', desiredAmountNumber);
     position.desiredAmountNumber = desiredAmountNumber;
