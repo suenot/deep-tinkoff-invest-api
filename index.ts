@@ -1,163 +1,325 @@
-import 'react';
-import 'graphql';
-import 'lodash';
-import 'subscriptions-transport-ws';
+import 'dotenv/config';
+import { createSdk } from './invest-nodejs-grpc-sdk/src/sdk';
+import 'mocha';
+import { expect } from 'chai';
+import _ from 'lodash';
+import uniqid from 'uniqid';
+import { instruments } from './instrumentsData';
+import { OrderDirection, OrderType } from './invest-nodejs-grpc-sdk/src/generated/orders';
+import { PortfolioPosition } from './invest-nodejs-grpc-sdk/src/generated/operations';
 
-import { generateApolloClient } from "@deep-foundation/hasura/client";
-import { DeepClient } from '@deep-foundation/deeplinks/imports/client';
-// import { minilinks, Link } from '@deep-foundation/deeplinks/imports/minilinks';
+(global as any).INSTRUMENTS = instruments;
+(global as any).POSITIONS = [];
 
-const apolloClient = generateApolloClient({
-  // path: '3006-deepfoundation-dev-trklra2bj6y.ws-eu43.gitpod.io/gql', // <<= HERE PATH TO UPDATE
-  path: 'localhost:3006/gql', // <<= HERE PATH TO UPDATE
-  ssl: false,
-  // admin token in prealpha deep secret key
-  // token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwczovL2hhc3VyYS5pby9qd3QvY2xhaW1zIjp7IngtaGFzdXJhLWFsbG93ZWQtcm9sZXMiOlsibGluayJdLCJ4LWhhc3VyYS1kZWZhdWx0LXJvbGUiOiJsaW5rIiwieC1oYXN1cmEtdXNlci1pZCI6IjIwNiJ9LCJpYXQiOjE2NDg0MDkzODV9.aiMZAI65NGEWwERsj1qdimHZcqkuaSLHBR8nGo8n2Nk',
-  // gitpod token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwczovL2hhc3VyYS5pby9qd3QvY2xhaW1zIjp7IngtaGFzdXJhLWFsbG93ZWQtcm9sZXMiOlsibGluayJdLCJ4LWhhc3VyYS1kZWZhdWx0LXJvbGUiOiJsaW5rIiwieC1oYXN1cmEtdXNlci1pZCI6IjIzMiJ9LCJpYXQiOjE2NTEyNTM0Nzd9.IJXiUMmNR7jN7sZyE2BLRHmxPEtBn32DjL_rCu_fSCE'
-  token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwczovL2hhc3VyYS5pby9qd3QvY2xhaW1zIjp7IngtaGFzdXJhLWFsbG93ZWQtcm9sZXMiOlsibGluayJdLCJ4LWhhc3VyYS1kZWZhdWx0LXJvbGUiOiJsaW5rIiwieC1oYXN1cmEtdXNlci1pZCI6IjIzMiJ9LCJpYXQiOjE2NTEzNDEwNDZ9.ccK9T0KAaEne_VSr9sBGp86aM1_U_IDXDtnUf1Veq_o'
-});
-const deep = new DeepClient({ apolloClient, linkId: 206 });
+const getPositionsCycle = async () => {
+  return await new Promise(() => {
+    const interval = setInterval(
+      async () => {
 
-const main = async () => {
-  const actualUserId = deep.linkId; // actualUserId
-  console.log('actualUserId', actualUserId);
+        let portfolio: any;
+        let portfolioPositions: any;
+        try {
+          debug('Получение портфолио');
+          portfolio = await operations.getPortfolio({
+            accountId: process.env.ACCOUNT_ID,
+          });
+          debug('portfolio', portfolio);
 
-  const Type = await deep.id('@deep-foundation/core', 'Type') // Type type link id
-  console.log('Type', Type);
+          portfolioPositions = portfolio.positions;
+          debug('portfolioPositions', portfolioPositions);
+        } catch (err) {
+          console.warn('Ошибка при получении портфолио');
+          debug(err);
+          console.trace(err);
+        }
 
-  const Package = await deep.id('@deep-foundation/core', 'Package') // Package type link Id
-  console.log('Package', Package);
+        let positions: any;
+        try {
+          debug('Получение позиций');
+          positions = await operations.getPositions({
+            accountId: process.env.ACCOUNT_ID,
+          });
+          debug('positions', positions);
+        } catch (err) {
+          console.warn('Ошибка при получении позиций');
+          debug(err);
+          console.trace(err);
+        }
 
-  const Contain = await deep.id('@deep-foundation/core', 'Contain') // Contain type link id
-  console.log('Contain', Contain);
+        const coreWallet: Wallet = [];
 
-  const Any = await deep.id('@deep-foundation/core', 'Any');
-  console.log('Any', Any);
+        debug('Добавляем валюты в Wallet');
+        for (const currency of positions.money) {
+          const corePosition = {
+            pair: `${currency.currency.toUpperCase()}/${currency.currency.toUpperCase()}`,
+            base: currency.currency.toUpperCase(),
+            quote: currency.currency.toUpperCase(),
+            figi: undefined,
+            amount: currency.units, // TODO: + nano
+            lotSize: 1,
+            price: {
+              units: 1,
+              nano: 0,
+            },
+            lotPrice: {
+              units: 1,
+              nano: 0,
+            },
+          };
+          debug('corePosition', corePosition);
+          coreWallet.push(corePosition);
+        }
 
-  const Value = await deep.id('@deep-foundation/core', 'Value'); // Value type link id
-  console.log('Value', Value);
+        debug('');
+        for (const position of portfolioPositions) {
+          const instrument =  _.find((global as any).INSTRUMENTS,  { figi: position.figi });
+          const corePosition = {
+            pair: `${instrument.ticker}/${instrument.currency.toUpperCase()}`,
+            base: instrument.ticker,
+            quote: instrument.currency.toUpperCase(),
+            figi: position.figi,
+            amount: convertTinkoffNumberToNumber(position.quantity),
+            lotSize: instrument.lot,
+            price: position.currentPrice,
+            lotPrice: convertNumberToTinkoffNumber(convertTinkoffNumberToNumber(position.quantity) * instrument.lot),
+          };
+          debug('corePosition', corePosition);
+          coreWallet.push(corePosition);
+        }
 
-  const String = await deep.id('@deep-foundation/core', 'String'); // String link id - use it as symbol
-  console.log('String', String);
+        debug(coreWallet);
 
-  const Number = await deep.id('@deep-foundation/core', 'Number'); // Number link id - use it as symbol
-  console.log('Number', Number);
-
-  // const { data: [{ id: packageId }] } = await deep.insert({
-  //   type_id: Package,
-  //   string: { data: { value: `@deep-foundation/tinkoff-invest-api` } },
-  //   in: { data: {
-  //     type_id: Contain,
-  //     from_id: actualUserId
-  //   } },
-  // });
-  // console.log('packageId', packageId); // 427
-  const packageId = 427;
-
-  // insert type StringValue
-  const { data: [{ id: StringValue }] } = await deep.insert({
-    // StringValue just dot
-    type_id: Type,
-    in: { data: {
-      // nest into package as 'StringValue' in Contain's tree under package
-      type_id: Contain,
-      from_id: packageId, // before created package
-      string: { data: { value: 'StringValue' } },
-    } },
-    out: { data: {
-      // StringValue can have .string as .value of link.
-      type_id: Value,
-      to_id: String,
-    } },
+        (global as any).POSITIONS = positions;
+      },
+      10000);
   });
-  console.log('StringValue', StringValue);
+};
+getPositionsCycle();
 
-  // // insert type NumberValue
-  // const { data: [{ id: NumberValue }] } = await deep.insert({
-  //   // NumberValue just dot
-  //   type_id: Type,
-  //   in: { data: {
-  //     // nest into package as 'NumberValue' in Contain's tree under package
-  //     type_id: Contain,
-  //     from_id: packageId, // before created package
-  //     string: { data: { value: 'NumberValue' } },
-  //   } },
-  //   out: { data: {
-  //     // NumberValue can have .number as .value of link.
-  //     type_id: Value,
-  //     to_id: Number,
-  //   } },
-  // });
-  // console.log('NumberValue', NumberValue);
+const { orders, operations } = createSdk(process.env.TOKEN || '');
 
-  // // insert type Position
-  // const { data: [{ id: Position }] } = await deep.insert({
-  //   // Position just dot
-  //   type_id: Type,
-  //   in: { data: [
-  //       {
-  //         // nest into package as 'Position' in Contain's tree under package
-  //         type_id: Contain,
-  //         from_id: packageId, // before created package
-  //         string: { data: { value: 'Position' } },
-  //       },
-  //       {
-  //         // nest into package as 'Position' in Contain's tree under package
-  //         type_id: Contain,
-  //         from_id: actualUserId, // before created package
-  //         // string: { data: { value: 'Position' } },
-  //       }
-  //     ]
-  //   },
-  // });
-  // console.log('Position', Position);
+const debug = require('debug')('bot').extend('balancer');
 
-  // // insert type Figi
-  // const { data: [{ id: Figi }] } = await deep.insert({
-  //   // Figi just dot
-  //   from_id: Position,
-  //   to_id: StringValue,
-  //   type_id: Type,
-  //   in: { data: {
-  //     // nest into package as 'Figi' in Contain's tree under package
-  //     type_id: Contain,
-  //     from_id: packageId, // before created package
-  //     string: { data: { value: 'Figi' } },
-  //   } },
-  // });
-  // console.log('Figi', Figi);
+const sumValues = obj => Object.values(obj).reduce((a: number, b: number) => a + b);
 
+const zeroPad = (num, places) => String(num).padStart(places, '0');
 
-  // // // insert type Figi
-  // // const { data: [{ id: Figi }] } = await deep.insert({
-  // //   // Figi just dot
-  // //   from_id: Position,
-  // //   to_id: StringValue,
-  // //   type_id: Type,
-  // //   in: { data: {
-  // //     // nest into package as 'Figi' in Contain's tree under package
-  // //     type_id: Contain,
-  // //     from_id: packageId, // before created package
-  // //     string: { data: { value: 'Figi' } },
-  // //   } },
-  // // });
-  // // console.log('Figi', Figi);
+const generateOrders = async (wallet: Wallet) => {
+  debug('generateOrders');
+  for (const position of wallet) {
+    await generateOrder(position);
+  }
+};
 
-  // // insert first Position in actual user
-  // const { data: [{ id: positionId1 }] } = await deep.insert({
-  //   type_id: Position,
-  //   out: { data: [
-  //       {
-  //         type_id: Figi,
-  //         to_id: actualUserId,
-  //       }
-  //     ]
-  //   },
-  // });
-  // console.log('positionId1', positionId1);
+const generateOrder = async (position: Position) => {
+  debug('generateOrder');
+  debug('position', position);
+
+  if (position.base === 'RUB') {
+    debug('Если позиция это рубль, то ничего не делаем');
+    return false;
+  }
+
+  debug('Позиция не валюта');
+
+  const direction = position.toBuyLots > 0 ? OrderDirection.ORDER_DIRECTION_BUY : OrderDirection.ORDER_DIRECTION_SELL;
+  for (const i of _.range(position.toBuyLots)) {
+    // Идея создавать однолотовые ордера, для того, чтобы они всегда исполнялись полностью, а не частично.
+    // Могут быть сложности с:
+    // - кол-вом разрешенных запросов к api, тогда придется реализовывать очередь.
+    // - минимальный ордер может быть больше одного лота
+    debug(`Создаем однолотовый ордер #${i}`);
+    const order = {
+      accountId: process.env.ACCOUNT_ID,
+      figi: position.figi,
+      quantity: 1,
+      // price: { units: 40, nano: 0 },
+      direction,
+      orderType: OrderType.ORDER_TYPE_MARKET,
+      orderId: uniqid(),
+    };
+    debug('Отправляем ордер', order);
+
+    try {
+      const setOrder = await orders.postOrder(order);
+      debug('Успешно поставили ордер', setOrder);
+    } catch (err) {
+      console.warn('Ошибка при выставлении ордера');
+      debug(err);
+      console.trace(err);
+    }
+  }
+};
+interface TinkoffNumber {
+  currency?: string;
+  units: number;
+  nano: number;
 }
 
+interface Position {
+  pair?: string;
+  base?: string;
+  quote?: string;
+  figi?: string;
+  amount?: number;
+  lotSize?: number;
+  price?: TinkoffNumber;
+  priceNumber?: number;
+  lotPrice?: TinkoffNumber;
+  lotPriceNumber?: number;
+  minPriceIncrement?: TinkoffNumber;
+  minPriceIncrementNumber?: number;
+  totalPrice?: TinkoffNumber;
+  totalPriceNumber?: number;
+  desiredAmountNumber?: number;
+  canBuyBeforeTargetLots?: number;
+  canBuyBeforeTargetNumber?: number;
+  beforeDiffNumber?: number;
+  toBuyLots?: number;
+  toBuyNumber?: number;
+}
 
+type Wallet = Position[];
 
-main()
+interface DesiredWallet {
+  [key: string]: number;
+}
 
+const normalizeDesire = (wallet: DesiredWallet): DesiredWallet => {
+  debug('Нормализуем проценты, чтобы общая сумма была равна 100%, чтобы исключить человеческий фактор');
+  debug('wallet', wallet);
+
+  const walletSum: number = Number(sumValues(wallet));
+  debug('walletSum', walletSum);
+
+  const normalizedDesire = Object.entries(wallet).reduce((p, [k, v]) => ({ ...p, [k]: (Number(v) / walletSum * 100) }), {});
+  debug('normalizedDesire', normalizedDesire);
+
+  return normalizedDesire;
+};
+
+const convertTinkoffNumberToNumber = (n: TinkoffNumber): number => {
+  const result = Number(`${n.units}.${zeroPad(n.nano, 9)}`);
+  debug(convertTinkoffNumberToNumber, result);
+  return result;
+};
+
+const convertNumberToTinkoffNumber = (n: number): TinkoffNumber => {
+  const [units, nano] = n.toFixed(9).split('.').map(item => Number(item));
+  return {
+    units,
+    nano,
+  };
+};
+
+const addNumbersToPosition = (position: Position): Position => {
+  position.priceNumber = convertTinkoffNumberToNumber(position.price);
+  position.lotPriceNumber = convertTinkoffNumberToNumber(position.lotPrice);
+  position.totalPriceNumber = convertTinkoffNumberToNumber(position.totalPrice);
+  // position.minPriceIncrementNumber = convertTinkoffNumberToNumber(position.minPriceIncrement);
+  debug('addNumbersToPosition', position);
+  return position;
+};
+
+const addNumbersToWallet = (wallet: Wallet): Wallet => {
+  for (let position of wallet) {
+    position = addNumbersToPosition(position);
+  }
+  debug('addNumbersToWallet', wallet);
+  return wallet;
+};
+
+const main = async () => {
+
+  const desiredWallet: DesiredWallet = {
+    TRUR: 50,
+    TMOS: 50,
+    RUB: 0, // -1
+  };
+  const walletInfo = {
+    remains: 0,
+  };
+
+  // totalPrice
+  const walletWithtotalPrice = _.map((global as any).POSITIONS, (position: Position): Position => {
+    const lotPriceNumber = convertTinkoffNumberToNumber(position.lotPrice);
+    const totalPriceNumber = lotPriceNumber * position.amount;
+    const totalPrice = convertNumberToTinkoffNumber(totalPriceNumber);
+    position.totalPrice = totalPrice;
+    return position;
+  });
+
+  const walletWithNumbers = addNumbersToWallet(walletWithtotalPrice);
+  debug('addNumbersToWallet', addNumbersToWallet);
+
+  // sortPositionsByLotPrice(wallet, 'desc') // side: desc/asc
+  const sortedWallet = _.orderBy(walletWithNumbers, ['lotPriceNumber'], ['desc']);
+  debug('sortedWallet', sortedWallet);
+
+  // Суммируем все позиции в портефле
+  const walletSumNumber = _.sumBy(sortedWallet, 'totalPriceNumber');
+  debug('walletSumNumber', walletSumNumber);
+
+  for (const [desiredTicker, desiredPercent] of Object.entries(desiredWallet)) {
+    // Ищем base (ticker) в wallet
+    const positionIndex = _.findIndex(sortedWallet, { base: desiredTicker });
+    const position: Position = sortedWallet[positionIndex];
+    debug('position', position);
+
+    // Рассчитываем сколько в рублях будет ожидаемая доля (допустим, 50%)
+    const desiredAmountNumber = walletSumNumber / 100 * desiredPercent;
+    debug('desiredAmountNumber', desiredAmountNumber);
+    position.desiredAmountNumber = desiredAmountNumber;
+
+    // Высчитываем сколько лотов можно купить до желаемого таргета
+    const canBuyBeforeTargetLots = Math.trunc(desiredAmountNumber / position.lotPriceNumber);
+    debug('canBuyBeforeTargetLots', canBuyBeforeTargetLots);
+    position.canBuyBeforeTargetLots = canBuyBeforeTargetLots;
+
+    // Высчитываем стоимость позиции, которую можно купить до желаемого таргета
+    const canBuyBeforeTargetNumber = canBuyBeforeTargetLots * position.lotPriceNumber;
+    debug('canBuyBeforeTargetNumber', canBuyBeforeTargetNumber);
+    position.canBuyBeforeTargetNumber = canBuyBeforeTargetNumber;
+
+    // // Высчитываем сколько лотов можно купить за желаемым таргетом
+    // const canBuyAfterTargetLots = canBuyBeforeTargetLots + position.lotPriceNumber;
+    // debug('canBuyAfterTargetLots', canBuyAfterTargetLots);
+
+    // // Высчитываем стоимость позиции, которую можно купить за желаемым таргетом
+    // const canBuyAfterTargetNumber = canBuyAfterTargetLots * position.lotPriceNumber;
+    // debug('canBuyAfterTargetNumber', canBuyAfterTargetNumber);
+
+    // Высчитываем разницу между желаемым значением и значением до таргета. Нераспеределенный остаток.
+    const beforeDiffNumber = Math.abs(desiredAmountNumber - canBuyBeforeTargetNumber);
+    debug('beforeDiffNumber', beforeDiffNumber);
+    position.beforeDiffNumber = beforeDiffNumber;
+
+    debug('Суммируем остатки'); // TODO: нужно определить валюту и записать остаток в этой валюте
+    walletInfo.remains += beforeDiffNumber; // пока в рублях
+
+    // // Высчитываем разницу между желаемым значением и значением за таргетом
+    // const afterDiffNumber = Math.abs(desiredAmountNumber - canBuyAfterTargetNumber);
+    // debug('afterDiffNumber', afterDiffNumber);
+
+    // // Выбираем меньшее число до желаемого таргета
+    // const minToTarget = Math.min(beforeDiffNumber, afterDiffNumber) === beforeDiffNumber ? 'before' : 'after';
+    // debug('minToTarget', minToTarget);
+
+    debug('Сколько нужно купить (может быть отрицательным, тогда нужно продать)');
+    const toBuyNumber = canBuyBeforeTargetNumber - position.totalPriceNumber;
+    debug('toBuyNumber', toBuyNumber);
+    position.toBuyNumber = toBuyNumber;
+
+    debug('Сколько нужно купить лотов (может быть отрицательным, тогда нужно продать)');
+    const toBuyLots = canBuyBeforeTargetLots - (position.amount / position.lotSize);
+    debug('toBuyLots', toBuyLots);
+    position.toBuyLots = toBuyLots;
+  }
+  debug('sortedWallet', sortedWallet);
+  debug('walletInfo', walletInfo);
+
+  // Для всех позиций создаем необходимые ордера
+
+  // (global as any).ORDERS.push(position);
+  generateOrders(sortedWallet);
+};

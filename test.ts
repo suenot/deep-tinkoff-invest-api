@@ -58,7 +58,7 @@ const getPositionsCycle = async () => {
             base: currency.currency.toUpperCase(),
             quote: currency.currency.toUpperCase(),
             figi: undefined,
-            amount: currency.balance,
+            amount: currency.units,
             lotSize: 1,
             price: {
               units: 1,
@@ -94,7 +94,7 @@ const getPositionsCycle = async () => {
 
         (global as any).POSITIONS = positions;
       },
-      2000);
+      10000);
   });
 };
 getPositionsCycle();
@@ -143,14 +143,14 @@ const generateOrder = async (position: Position) => {
     };
     debug('Отправляем ордер', order);
 
-    try {
-      const setOrder = await orders.postOrder(order);
-      debug('Успешно поставили ордер', setOrder);
-    } catch (err) {
-      console.warn('Ошибка при выставлении ордера');
-      debug(err);
-      console.trace(err);
-    }
+    // try {
+    //   const setOrder = await orders.postOrder(order);
+    //   debug('Успешно поставили ордер', setOrder);
+    // } catch (err) {
+    //   console.warn('Ошибка при выставлении ордера');
+    //   debug(err);
+    //   console.trace(err);
+    // }
   }
 };
 
