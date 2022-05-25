@@ -12,9 +12,35 @@ import { Wallet, DesiredWallet, TinkoffNumber, Position } from './types.d';
 export const sleep = (ms: any) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const debug = require('debug')('bot').extend('balancer');
+export const info = require('debug')('bot').extend('info');
+
+const { orders, operations, marketData, users } = createSdk(process.env.TOKEN || '');
+
+let ACCOUNT_ID;
 
 (global as any).INSTRUMENTS = instruments;
 (global as any).POSITIONS = [];
+
+export const getAccountId = async (type) => {
+  if (type !== 'ISS' && type !== 'BROKER') {
+    debug('Передан ACCOUNT_ID', type);
+    return type;
+  };
+
+  debug('Получаем список аккаунтов');
+  let accountsResult;
+  try {
+    accountsResult = await users.getAccounts({});
+  } catch (err) {
+    debug(err);
+  }
+  debug('accountsResult', accountsResult);
+
+  const account = (type === 'ISS') ? _.find(accountsResult, { type: 2 }) : _.find(accountsResult, { type: 1 });
+  debug('Найден ACCOUNT_ID', account);
+
+  return account;
+};
 
 export const getPositionsCycle = async () => {
   return await new Promise(() => {
@@ -27,7 +53,7 @@ export const getPositionsCycle = async () => {
         try {
           debug('Получение портфолио');
           portfolio = await operations.getPortfolio({
-            accountId: process.env.ACCOUNT_ID,
+            accountId: ACCOUNT_ID,
           });
           debug('portfolio', portfolio);
 
@@ -43,7 +69,7 @@ export const getPositionsCycle = async () => {
         try {
           debug('Получение позиций');
           positions = await operations.getPositions({
-            accountId: process.env.ACCOUNT_ID,
+            accountId: ACCOUNT_ID,
           });
           debug('positions', positions);
         } catch (err) {
@@ -113,9 +139,13 @@ export const getPositionsCycle = async () => {
       BALANCE_INTERVAL);
   });
 };
-getPositionsCycle();
 
-const { orders, operations, marketData } = createSdk(process.env.TOKEN || '');
+export const main = async () => {
+  ACCOUNT_ID = await getAccountId(process.env.ACCOUNT_ID);
+  getPositionsCycle();
+};
+
+main();
 
 export const sumValues = obj => Object.values(obj).reduce((a: any, b: any) => a + b);
 
@@ -144,7 +174,7 @@ export const getLastPrice = async (figi) => {
   debug('lastPrice', lastPrice);
   await sleep(SLEEP_BETWEEN_ORDERS);
   return lastPrice;
-}
+};
 
 export const generateOrder = async (position: Position) => {
   debug('generateOrder');
@@ -169,7 +199,7 @@ export const generateOrder = async (position: Position) => {
   //   // - минимальный ордер может быть больше одного лота
   //   debug(`Создаем однолотовый ордер #${i} of ${_.range(position.toBuyLots).length}`);
   //   const order = {
-  //     accountId: process.env.ACCOUNT_ID,
+  //     accountId: ACCOUNT_ID,
   //     figi: position.figi,
   //     quantity: 1,
   //     // price: { units: 40, nano: 0 },
@@ -193,7 +223,7 @@ export const generateOrder = async (position: Position) => {
   // Или можно создавать обычные ордера
   debug('Создаем рыночный ордер');
   const order = {
-    accountId: process.env.ACCOUNT_ID,
+    accountId: ACCOUNT_ID,
     figi: position.figi,
     quantity: Math.abs(position.toBuyLots),
     // price: { units: 40, nano: 0 },
@@ -300,7 +330,7 @@ export const balancer = async (positions: Wallet, desiredWallet: DesiredWallet) 
         priceNumber: convertTinkoffNumberToNumber(lastPrice),
         amount: 0,
         lotSize: 1,
-        lotPrice: lastPrice, // TODO:
+        // lotPrice: lastPrice, // TODO: для usd нужно сделать * lotSize
       };
       debug('newPosition', newPosition);
       wallet.push(newPosition);
@@ -310,13 +340,20 @@ export const balancer = async (positions: Wallet, desiredWallet: DesiredWallet) 
   debug('Рассчитываем totalPrice');
   const walletWithTotalPrice = _.map(wallet, (position: Position): Position => {
     debug('walletWithtotalPrice: map start: position', position);
-    // const lotPriceNumber = convertTinkoffNumberToNumber(position.lotPrice);
+
+    const lotPriceNumber = convertTinkoffNumberToNumber(position.lotPrice);
+    debug('lotPriceNumber', lotPriceNumber);
+
     debug('position.amount, position.priceNumber');
     debug(position.amount, position.priceNumber);
+
     const totalPriceNumber = convertTinkoffNumberToNumber(position.price) * position.amount; // position.amount * position.priceNumber; //
+    debug('totalPriceNumber', totalPriceNumber);
+
     const totalPrice = convertNumberToTinkoffNumber(totalPriceNumber);
     position.totalPrice = totalPrice;
     debug('totalPrice', totalPrice);
+
     debug('walletWithtotalPrice: map end: position', position);
     return position;
   });
@@ -337,6 +374,7 @@ export const balancer = async (positions: Wallet, desiredWallet: DesiredWallet) 
     const positionIndex = _.findIndex(sortedWallet, { base: desiredTicker });
     debug('positionIndex', positionIndex);
 
+    // TODO:
     // const position: Position;
     // if (positionIndex === -1) {
     //   debug('В портфеле нету тикера из DesireWallet. Создаем.');
@@ -355,8 +393,7 @@ export const balancer = async (positions: Wallet, desiredWallet: DesiredWallet) 
     //   positionIndex = _.findIndex(sortedWallet, { base: desiredTicker });
     // }
 
-    debug('В портфеле есть тикера из DesireWallet');
-    const position = sortedWallet[positionIndex];
+    const position: Position = sortedWallet[positionIndex];
     debug('position', position);
 
     debug('Рассчитываем сколько в рублях будет ожидаемая доля (допустим, 50%)');
