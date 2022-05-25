@@ -18,6 +18,7 @@ export const debug = require('debug')('bot').extend('balancer');
 
 export const getPositionsCycle = async () => {
   return await new Promise(() => {
+    let count = 1;
     const interval = setInterval(
       async () => {
 
@@ -106,7 +107,8 @@ export const getPositionsCycle = async () => {
         debug(coreWallet);
 
         await balancer(coreWallet, _desiredWallet);
-        await sleep(60000);
+        debug(`ITERATION #${count} FINISHED. TIME: ${new Date()}`);
+        count++;
       },
       balancerInterval);
   });
@@ -396,5 +398,5 @@ export const balancer = async (positions: Wallet, desiredWallet: DesiredWallet) 
   debug('walletInfo', walletInfo);
 
   debug('Для всех позиций создаем необходимые ордера');
-  generateOrders(sortedWallet);
+  await generateOrders(sortedWallet);
 };
