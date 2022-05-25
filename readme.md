@@ -20,7 +20,16 @@ TOKEN=
 ACCOUNT_ID=
 ```
 
-Желаемые настройки портфеля в процентах настраиваются в `./src/config.js`.
+Желаемые настройки портфеля в процентах и перерыв между балансировками настраиваются в `./src/config.js`:
+```js
+export const desiredWallet: DesiredWallet = {
+  TMOS: 25, // 25% Тинькофф iMOEX (TMOS)
+  RUB: 25, // 25% Рублей
+  TRUR: 50, // 50% Тинькофф Вечный портфель (TRUR)
+};
+
+export const balancerInterval: number = 60000; // Раз в минуту
+```
 ### Запуск
 ```
 npm i
