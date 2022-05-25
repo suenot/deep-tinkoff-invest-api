@@ -142,6 +142,7 @@ export const getLastPrice = async (figi) => {
 
   const lastPrice = lastPriceResult?.lastPrices?.[0]?.price;
   debug('lastPrice', lastPrice);
+  await sleep(SLEEP_BETWEEN_ORDERS);
   return lastPrice;
 }
 

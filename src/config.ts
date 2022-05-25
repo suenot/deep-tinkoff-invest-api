@@ -3,7 +3,7 @@ import { DesiredWallet } from './types.d';
 export const DESIRED_WALLET: DesiredWallet = {
   TMOS: 25, // 25% Тинькофф iMOEX (TMOS)
   RUB: 25, // 25% Рублей
-  TBRU: 25, // Тинькофф Bonds
+  TBRU: 25, // 25% Тинькофф Bonds
   TRUR: 25, // 25% Тинькофф Вечный портфель (TRUR)
 };
 
