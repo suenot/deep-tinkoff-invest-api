@@ -6,7 +6,7 @@ import _ from 'lodash';
 import uniqid from 'uniqid';
 import { instruments } from './instrumentsData';
 import { OrderDirection, OrderType } from './invest-nodejs-grpc-sdk/src/generated/orders';
-import { desiredWallet as _desiredWallet, balancerInterval } from './config';
+import { DESIRED_WALLET, BALANCE_INTERVAL, SLEEP_BETWEEN_ORDERS } from './config';
 import { Wallet, DesiredWallet, TinkoffNumber, Position } from './types.d';
 
 export const sleep = (ms: any) => new Promise(resolve => setTimeout(resolve, ms));
@@ -106,11 +106,11 @@ export const getPositionsCycle = async () => {
 
         debug(coreWallet);
 
-        await balancer(coreWallet, _desiredWallet);
+        await balancer(coreWallet, DESIRED_WALLET);
         debug(`ITERATION #${count} FINISHED. TIME: ${new Date()}`);
         count++;
       },
-      balancerInterval);
+      BALANCE_INTERVAL);
   });
 };
 getPositionsCycle();
@@ -210,7 +210,7 @@ export const generateOrder = async (position: Position) => {
     debug(err);
     console.trace(err);
   }
-  await sleep(1000);
+  await sleep(SLEEP_BETWEEN_ORDERS);
 
 };
 
