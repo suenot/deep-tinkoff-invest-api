@@ -13,12 +13,13 @@
     "bot"
   ],
   "scripts": {
-    "start": "ts-node index.ts",
-    "dev": "DEBUG=\"*\" ts-node index.ts",
-    "test": "DEBUG=\"*\" ts-mocha --timeout 10000 --project ./tsconfig.json test.ts"
+    "start": "ts-node ./src/index.ts",
+    "dev": "DEBUG=\"*\" ts-node ./src/index.ts",
+    "test": "DEBUG=\"*\" ts-mocha --timeout 10000 --project ./tsconfig.json /.src/test.ts"
   },
   "author": "Eugen Soloviov",
   "license": "Apache-2.0",
+  "types": "./src/index.d.ts",
   "dependencies": {
     "@types/mocha": "^5.2.7",
     "@types/node": "^12.12.8",

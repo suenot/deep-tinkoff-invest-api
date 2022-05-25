@@ -6,14 +6,17 @@ import _ from 'lodash';
 import uniqid from 'uniqid';
 import { instruments } from './instrumentsData';
 import { OrderDirection, OrderType } from './invest-nodejs-grpc-sdk/src/generated/orders';
-import { PortfolioPosition } from './invest-nodejs-grpc-sdk/src/generated/operations';
+import { desiredWallet as _desiredWallet, balancerInterval } from './config';
+import { Wallet, DesiredWallet, TinkoffNumber, Position } from './types.d';
 
-const sleep = (ms: any) => new Promise(resolve => setTimeout(resolve, ms));
+export const sleep = (ms: any) => new Promise(resolve => setTimeout(resolve, ms));
+
+export const debug = require('debug')('bot').extend('balancer');
 
 (global as any).INSTRUMENTS = instruments;
 (global as any).POSITIONS = [];
 
-const getPositionsCycle = async () => {
+export const getPositionsCycle = async () => {
   return await new Promise(() => {
     const interval = setInterval(
       async () => {
@@ -63,6 +66,7 @@ const getPositionsCycle = async () => {
               units: 1,
               nano: 0,
             },
+            priceNumber: 1,
             lotPrice: {
               units: 1,
               nano: 0,
@@ -72,9 +76,18 @@ const getPositionsCycle = async () => {
           coreWallet.push(corePosition);
         }
 
-        debug('');
+        (global as any).POSITIONS = portfolioPositions;
+
+        debug('Добавляем позиции в Wallet');
         for (const position of portfolioPositions) {
-          const instrument =  _.find((global as any).INSTRUMENTS,  { figi: position.figi });
+          debug('position', position);
+
+          const instrument = _.find((global as any).INSTRUMENTS,  { figi: position.figi });
+          debug('instrument', instrument);
+
+          const priceWhenAddToWallet = await getLastPrice(instrument.figi);
+          debug('priceWhenAddToWallet', priceWhenAddToWallet);
+
           const corePosition = {
             pair: `${instrument.ticker}/${instrument.currency.toUpperCase()}`,
             base: instrument.ticker,
@@ -82,8 +95,9 @@ const getPositionsCycle = async () => {
             figi: position.figi,
             amount: convertTinkoffNumberToNumber(position.quantity),
             lotSize: instrument.lot,
-            price: position.currentPrice,
-            lotPrice: convertNumberToTinkoffNumber(convertTinkoffNumberToNumber(position.quantity) * instrument.lot),
+            price: priceWhenAddToWallet,
+            priceNumber: convertTinkoffNumberToNumber(position.currentPrice),
+            lotPrice: priceWhenAddToWallet, // TODO:// lotPrice: convertNumberToTinkoffNumber(convertTinkoffNumberToNumber(position.quantity) * instrument.lot * priceWhenAddToWallet),
           };
           debug('corePosition', corePosition);
           coreWallet.push(corePosition);
@@ -91,31 +105,45 @@ const getPositionsCycle = async () => {
 
         debug(coreWallet);
 
-        (global as any).POSITIONS = coreWallet;
-        await main(coreWallet);
+        await balancer(coreWallet, _desiredWallet);
         await sleep(60000);
       },
-      10000);
+      balancerInterval);
   });
 };
 getPositionsCycle();
 
-const { orders, operations } = createSdk(process.env.TOKEN || '');
+const { orders, operations, marketData } = createSdk(process.env.TOKEN || '');
 
-const debug = require('debug')('bot').extend('balancer');
+export const sumValues = obj => Object.values(obj).reduce((a: any, b: any) => a + b);
 
-const sumValues = obj => Object.values(obj).reduce((a: number, b: number) => a + b);
+export const zeroPad = (num, places) => String(num).padStart(places, '0');
 
-const zeroPad = (num, places) => String(num).padStart(places, '0');
-
-const generateOrders = async (wallet: Wallet) => {
+export const generateOrders = async (wallet: Wallet) => {
   debug('generateOrders');
   for (const position of wallet) {
     await generateOrder(position);
   }
 };
 
-const generateOrder = async (position: Position) => {
+export const getLastPrice = async (figi) => {
+  debug('Получаем последнюю цену');
+  let lastPriceResult;
+  try {
+    lastPriceResult = await marketData.getLastPrices({
+      figi: [figi],
+    });
+    debug('lastPriceResult', lastPriceResult);
+  } catch (err) {
+    debug(err);
+  }
+
+  const lastPrice = lastPriceResult?.lastPrices?.[0]?.price;
+  debug('lastPrice', lastPrice);
+  return lastPrice;
+}
+
+export const generateOrder = async (position: Position) => {
   debug('generateOrder');
   debug('position', position);
 
@@ -183,42 +211,8 @@ const generateOrder = async (position: Position) => {
   await sleep(1000);
 
 };
-interface TinkoffNumber {
-  currency?: string;
-  units: number;
-  nano: number;
-}
 
-interface Position {
-  pair?: string;
-  base?: string;
-  quote?: string;
-  figi?: string;
-  amount?: number;
-  lotSize?: number;
-  price?: TinkoffNumber;
-  priceNumber?: number;
-  lotPrice?: TinkoffNumber;
-  lotPriceNumber?: number;
-  minPriceIncrement?: TinkoffNumber;
-  minPriceIncrementNumber?: number;
-  totalPrice?: TinkoffNumber;
-  totalPriceNumber?: number;
-  desiredAmountNumber?: number;
-  canBuyBeforeTargetLots?: number;
-  canBuyBeforeTargetNumber?: number;
-  beforeDiffNumber?: number;
-  toBuyLots?: number;
-  toBuyNumber?: number;
-}
-
-type Wallet = Position[];
-
-interface DesiredWallet {
-  [key: string]: number;
-}
-
-const normalizeDesire = (wallet: DesiredWallet): DesiredWallet => {
+export const normalizeDesire = (wallet: DesiredWallet): DesiredWallet => {
   debug('Нормализуем проценты, чтобы общая сумма была равна 100%, чтобы исключить человеческий фактор');
   debug('wallet', wallet);
 
@@ -231,14 +225,14 @@ const normalizeDesire = (wallet: DesiredWallet): DesiredWallet => {
   return normalizedDesire;
 };
 
-const convertTinkoffNumberToNumber = (n: TinkoffNumber): number => {
+export const convertTinkoffNumberToNumber = (n: TinkoffNumber): number => {
   debug('n', n);
   const result = Number(`${n.units}.${zeroPad(n?.nano, 9)}`);
-  debug(convertTinkoffNumberToNumber, result);
+  debug('convertTinkoffNumberToNumber', result);
   return result;
 };
 
-const convertNumberToTinkoffNumber = (n: number): TinkoffNumber => {
+export const convertNumberToTinkoffNumber = (n: number): TinkoffNumber => {
   const [units, nano] = n.toFixed(9).split('.').map(item => Number(item));
   return {
     units,
@@ -246,16 +240,26 @@ const convertNumberToTinkoffNumber = (n: number): TinkoffNumber => {
   };
 };
 
-const addNumbersToPosition = (position: Position): Position => {
+export const addNumbersToPosition = (position: Position): Position => {
+  debug('addNumbersToPosition start');
+
+  debug('position.price', position.price);
   position.priceNumber = convertTinkoffNumberToNumber(position.price);
+  debug('position.priceNumber', position.priceNumber);
+
+  debug('position.lotPrice', position.lotPrice);
   position.lotPriceNumber = convertTinkoffNumberToNumber(position.lotPrice);
+  debug('position.lotPriceNumber', position.lotPriceNumber);
+
+  debug('position.totalPrice', position.totalPrice);
   position.totalPriceNumber = convertTinkoffNumberToNumber(position.totalPrice);
-  // position.minPriceIncrementNumber = convertTinkoffNumberToNumber(position.minPriceIncrement);
-  debug('addNumbersToPosition', position);
+  debug('position.totalPriceNumber', position.totalPriceNumber);
+
+  debug('addNumbersToPosition end', position);
   return position;
 };
 
-const addNumbersToWallet = (wallet: Wallet): Wallet => {
+export const addNumbersToWallet = (wallet: Wallet): Wallet => {
   for (let position of wallet) {
     position = addNumbersToPosition(position);
   }
@@ -263,31 +267,58 @@ const addNumbersToWallet = (wallet: Wallet): Wallet => {
   return wallet;
 };
 
-const main = async (positions) => {
+export const balancer = async (positions: Wallet, desiredWallet: DesiredWallet) => {
 
-  const desiredWallet: DesiredWallet = {
-    // TMOS: 50,
-    RUB: 50, // -1
-    TRUR: 50,
-  };
   const walletInfo = {
     remains: 0,
   };
 
-  // totalPrice
-  const walletWithtotalPrice = _.map(positions, (position: Position): Position => {
+  const wallet = positions;
+
+  for (const [desiredTicker, desiredPercent] of Object.entries(desiredWallet)) {
+    debug(' Ищем base (ticker) в wallet');
+    const positionIndex = _.findIndex(wallet, { base: desiredTicker });
+    debug('positionIndex', positionIndex);
+
+    if (positionIndex === -1) {
+      debug('В портфеле нету тикера из DesireWallet. Создаем.');
+
+      const findedFigiByTicker = _.find((global as any).INSTRUMENTS, { ticker: desiredTicker })?.figi;
+      debug(findedFigiByTicker);
+
+      const lastPrice = await getLastPrice(findedFigiByTicker);
+
+      const newPosition = {
+        pair: `${desiredTicker}/RUB`,
+        base: desiredTicker,
+        quote: 'RUB',
+        figi: findedFigiByTicker,
+        price: lastPrice,
+        priceNumber: convertTinkoffNumberToNumber(lastPrice),
+        amount: 0,
+        lotSize: 1,
+        lotPrice: lastPrice, // TODO:
+      };
+      debug('newPosition', newPosition);
+      wallet.push(newPosition);
+    }
+  }
+
+  debug('Рассчитываем totalPrice');
+  const walletWithTotalPrice = _.map(wallet, (position: Position): Position => {
     debug('walletWithtotalPrice: map start: position', position);
-    const lotPriceNumber = convertTinkoffNumberToNumber(position.lotPrice);
+    // const lotPriceNumber = convertTinkoffNumberToNumber(position.lotPrice);
     debug('position.amount, position.priceNumber');
     debug(position.amount, position.priceNumber);
     const totalPriceNumber = convertTinkoffNumberToNumber(position.price) * position.amount; // position.amount * position.priceNumber; //
     const totalPrice = convertNumberToTinkoffNumber(totalPriceNumber);
     position.totalPrice = totalPrice;
+    debug('totalPrice', totalPrice);
     debug('walletWithtotalPrice: map end: position', position);
     return position;
   });
 
-  const walletWithNumbers = addNumbersToWallet(walletWithtotalPrice);
+  const walletWithNumbers = addNumbersToWallet(walletWithTotalPrice);
   debug('addNumbersToWallet', addNumbersToWallet);
 
   const sortedWallet = _.orderBy(walletWithNumbers, ['lotPriceNumber'], ['desc']);
@@ -299,33 +330,30 @@ const main = async (positions) => {
   debug('walletSumNumber', walletSumNumber);
 
   for (const [desiredTicker, desiredPercent] of Object.entries(desiredWallet)) {
-    // Ищем base (ticker) в wallet
-    let positionIndex = _.findIndex(sortedWallet, { base: desiredTicker });
+    debug(' Ищем base (ticker) в wallet');
+    const positionIndex = _.findIndex(sortedWallet, { base: desiredTicker });
     debug('positionIndex', positionIndex);
 
-    let position: Position;
-    if (positionIndex === -1) {
-      debug('В портфеле нету тикера из DesireWallet. Создаем.');
-      const newPosition = {
-        pair: `${desiredTicker}/RUB`,
-        base: desiredTicker,
-        quote: 'RUB',
-        figi: _.find((global as any).INSTRUMENTS, { ticker: desiredTicker })?.figi,
-        amount: 0,
-        lotSize: 1,
-        price: { units: 1, nano: 0 }, // TODO
-        lotPrice: { units: 1, nano: 0 },
-        totalPrice: { units: 1, nano: 0 },
-        priceNumber: 1,
-        lotPriceNumber: 1,
-        totalPriceNumber: 0,
-      };
-      sortedWallet.push(newPosition);
-      positionIndex = _.findIndex(sortedWallet, { base: desiredTicker });
-    }
+    // const position: Position;
+    // if (positionIndex === -1) {
+    //   debug('В портфеле нету тикера из DesireWallet. Создаем.');
+    //   const newPosition = {
+    //     pair: `${desiredTicker}/RUB`,
+    //     base: desiredTicker,
+    //     quote: 'RUB',
+    //     figi: _.find((global as any).INSTRUMENTS, { ticker: desiredTicker })?.figi,
+    //     amount: 0,
+    //     lotSize: 1,
+    //     // price: _.find((global as any).INSTRUMENTS, { ticker: desiredTicker })?.price, // { units: 1, nano: 0 },
+    //     // lotPrice: { units: 1, nano: 0 },
+    //     // totalPrice: { units: 1, nano: 0 },
+    //   };
+    //   sortedWallet.push(newPosition);
+    //   positionIndex = _.findIndex(sortedWallet, { base: desiredTicker });
+    // }
 
     debug('В портфеле есть тикера из DesireWallet');
-    position = sortedWallet[positionIndex];
+    const position = sortedWallet[positionIndex];
     debug('position', position);
 
     debug('Рассчитываем сколько в рублях будет ожидаемая доля (допустим, 50%)');
@@ -345,29 +373,13 @@ const main = async (positions) => {
     debug('canBuyBeforeTargetNumber', canBuyBeforeTargetNumber);
     position.canBuyBeforeTargetNumber = canBuyBeforeTargetNumber;
 
-    // // Высчитываем сколько лотов можно купить за желаемым таргетом
-    // const canBuyAfterTargetLots = canBuyBeforeTargetLots + position.lotPriceNumber;
-    // debug('canBuyAfterTargetLots', canBuyAfterTargetLots);
-
-    // // Высчитываем стоимость позиции, которую можно купить за желаемым таргетом
-    // const canBuyAfterTargetNumber = canBuyAfterTargetLots * position.lotPriceNumber;
-    // debug('canBuyAfterTargetNumber', canBuyAfterTargetNumber);
-
     debug('Высчитываем разницу между желаемым значением и значением до таргета. Нераспеределенный остаток.');
     const beforeDiffNumber = Math.abs(desiredAmountNumber - canBuyBeforeTargetNumber);
     debug('beforeDiffNumber', beforeDiffNumber);
     position.beforeDiffNumber = beforeDiffNumber;
 
     debug('Суммируем остатки'); // TODO: нужно определить валюту и записать остаток в этой валюте
-    walletInfo.remains += beforeDiffNumber; // пока в рублях
-
-    // // Высчитываем разницу между желаемым значением и значением за таргетом
-    // const afterDiffNumber = Math.abs(desiredAmountNumber - canBuyAfterTargetNumber);
-    // debug('afterDiffNumber', afterDiffNumber);
-
-    // // Выбираем меньшее число до желаемого таргета
-    // const minToTarget = Math.min(beforeDiffNumber, afterDiffNumber) === beforeDiffNumber ? 'before' : 'after';
-    // debug('minToTarget', minToTarget);
+    walletInfo.remains += beforeDiffNumber; // Пока только в рублях
 
     debug('Сколько нужно купить (может быть отрицательным, тогда нужно продать)');
     const toBuyNumber = canBuyBeforeTargetNumber - position.totalPriceNumber;
@@ -379,6 +391,7 @@ const main = async (positions) => {
     debug('toBuyLots', toBuyLots);
     position.toBuyLots = toBuyLots;
   }
+
   debug('sortedWallet', sortedWallet);
   debug('walletInfo', walletInfo);
 
