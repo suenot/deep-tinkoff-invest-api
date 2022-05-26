@@ -96,16 +96,18 @@ import { writefile } from '../utils';
   //==============================================================================================================
 
   //==============================================================================================================
-  // const shares = await instruments.shares({
-  //   instrumentStatus: InstrumentStatus.INSTRUMENT_STATUS_BASE,
-  // });
-  // const shareByFIGI = await instruments.shareBy({
-  //   idType: InstrumentIdType.INSTRUMENT_ID_TYPE_FIGI,
-  //   id: 'BBG005DXJS36',
-  // });
+  const shares = await instruments.shares({
+    instrumentStatus: InstrumentStatus.INSTRUMENT_STATUS_BASE,
+  });
+  console.log('Получение списка акций, допущенных к торговле через API: ', shares);
+  writefile(shares, 'shares');
 
-  // console.log('Получение списка акций, допущенных к торговле через API: ', shares);
-  // console.log('Получение информации об акции по её FIGI: ', shareByFIGI);
+  const shareByFIGI = await instruments.shareBy({
+    idType: InstrumentIdType.INSTRUMENT_ID_TYPE_FIGI,
+    id: 'BBG004730ZJ9',
+  });
+  console.log('Получение информации об акции по её FIGI: ', shareByFIGI);
+  writefile(shareByFIGI, 'shareBy');
   //==============================================================================================================
 
   //==============================================================================================================

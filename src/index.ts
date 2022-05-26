@@ -4,8 +4,8 @@ import 'mocha';
 import { expect } from 'chai';
 import _ from 'lodash';
 import uniqid from 'uniqid';
-import { instruments } from './instrumentsData';
 import { OrderDirection, OrderType } from './invest-nodejs-grpc-sdk/src/generated/orders';
+import { InstrumentStatus } from './invest-nodejs-grpc-sdk/src/generated/instruments';
 import { DESIRED_WALLET, BALANCE_INTERVAL, SLEEP_BETWEEN_ORDERS } from './config';
 import { Wallet, DesiredWallet, TinkoffNumber, Position } from './types.d';
 
@@ -14,18 +14,53 @@ export const sleep = (ms: any) => new Promise(resolve => setTimeout(resolve, ms)
 export const debug = require('debug')('bot').extend('balancer');
 export const info = require('debug')('bot').extend('info');
 
-const { orders, operations, marketData, users } = createSdk(process.env.TOKEN || '');
+const { orders, operations, marketData, users, instruments } = createSdk(process.env.TOKEN || '');
 
 let ACCOUNT_ID;
 
-(global as any).INSTRUMENTS = instruments;
+(global as any).INSTRUMENTS = [];
 (global as any).POSITIONS = [];
+
+export const getInstruments = async () => {
+
+  debug('Получаем список акций');
+  let sharesResult;
+  try {
+    sharesResult = await instruments.shares({
+      instrumentStatus: InstrumentStatus.INSTRUMENT_STATUS_BASE,
+    });
+  } catch (err) {
+    debug(err);
+  }
+  debug('sharesResult', sharesResult);
+
+  const shares = sharesResult?.instruments;
+  debug('shares', shares);
+
+  (global as any).INSTRUMENTS = _.union(shares, (global as any).INSTRUMENTS);
+
+  debug('Получаем список фондов');
+  let etfsResult;
+  try {
+    etfsResult = await instruments.etfs({
+      instrumentStatus: InstrumentStatus.INSTRUMENT_STATUS_BASE,
+    });
+  } catch (err) {
+    debug(err);
+  }
+  debug('etfsResult', etfsResult);
+
+  const etfs = etfsResult?.instruments;
+  debug('etfs', etfs);
+
+  (global as any).INSTRUMENTS = _.union(etfs, (global as any).INSTRUMENTS);
+};
 
 export const getAccountId = async (type) => {
   if (type !== 'ISS' && type !== 'BROKER') {
     debug('Передан ACCOUNT_ID', type);
     return type;
-  };
+  }
 
   debug('Получаем список аккаунтов');
   let accountsResult;
@@ -124,7 +159,7 @@ export const getPositionsCycle = async () => {
             lotSize: instrument.lot,
             price: priceWhenAddToWallet,
             priceNumber: convertTinkoffNumberToNumber(position.currentPrice),
-            lotPrice: priceWhenAddToWallet, // TODO:// lotPrice: convertNumberToTinkoffNumber(convertTinkoffNumberToNumber(position.quantity) * instrument.lot * priceWhenAddToWallet),
+            lotPrice: convertNumberToTinkoffNumber(instrument.lot * convertTinkoffNumberToNumber(priceWhenAddToWallet)),
           };
           debug('corePosition', corePosition);
           coreWallet.push(corePosition);
@@ -142,7 +177,8 @@ export const getPositionsCycle = async () => {
 
 export const main = async () => {
   ACCOUNT_ID = await getAccountId(process.env.ACCOUNT_ID);
-  getPositionsCycle();
+  await getInstruments();
+  await getPositionsCycle();
 };
 
 main();
@@ -187,11 +223,18 @@ export const generateOrder = async (position: Position) => {
 
   debug('Позиция не валюта');
 
-  const direction = position.toBuyLots > 0 ? OrderDirection.ORDER_DIRECTION_BUY : OrderDirection.ORDER_DIRECTION_SELL;
-  if (position.toBuyLots === 0) {
-    debug('Выставление нулевого ордера. Не имеет смысла выполнять.');
+  debug('position.toBuyLots', position.toBuyLots);
+
+  if ((-1 < position.toBuyLots) && (position.toBuyLots < 1)) {
+    debug('Выставление ордера меньше 1 лота. Не имеет смысла выполнять.');
     return 0;
   }
+
+  debug('Позиция больше или равно 1 лоту');
+
+  const direction = position.toBuyLots >= 1 ? OrderDirection.ORDER_DIRECTION_BUY : OrderDirection.ORDER_DIRECTION_SELL;
+  debug('direction', direction);
+
   // for (const i of _.range(position.toBuyLots)) {
   //   // Идея создавать однолотовые ордера, для того, чтобы они всегда исполнялись полностью, а не частично.
   //   // Могут быть сложности с:
@@ -221,11 +264,13 @@ export const generateOrder = async (position: Position) => {
   // }
 
   // Или можно создавать обычные ордера
+  debug('position', position);
+
   debug('Создаем рыночный ордер');
   const order = {
     accountId: ACCOUNT_ID,
     figi: position.figi,
-    quantity: Math.abs(position.toBuyLots),
+    quantity: Math.abs(position.toBuyLots), // Нужно указывать количество лотов, а не бумаг: https://tinkoff.github.io/investAPI/orders/#postorderrequest
     // price: { units: 40, nano: 0 },
     direction,
     orderType: OrderType.ORDER_TYPE_MARKET,
@@ -260,7 +305,13 @@ export const normalizeDesire = (wallet: DesiredWallet): DesiredWallet => {
 
 export const convertTinkoffNumberToNumber = (n: TinkoffNumber): number => {
   debug('n', n);
-  const result = Number(`${n.units}.${zeroPad(n?.nano, 9)}`);
+
+  let result;
+  if (n?.units ===  undefined) {
+    result = Number(`0.${zeroPad(n?.nano, 9)}`);
+  } else {
+    result = Number(`${n.units}.${zeroPad(n?.nano, 9)}`);
+  }
   debug('convertTinkoffNumberToNumber', result);
   return result;
 };
@@ -316,21 +367,27 @@ export const balancer = async (positions: Wallet, desiredWallet: DesiredWallet) 
     if (positionIndex === -1) {
       debug('В портфеле нету тикера из DesireWallet. Создаем.');
 
-      const findedFigiByTicker = _.find((global as any).INSTRUMENTS, { ticker: desiredTicker })?.figi;
-      debug(findedFigiByTicker);
+      const findedInstumentByTicker = _.find((global as any).INSTRUMENTS, { ticker: desiredTicker });
+      debug(findedInstumentByTicker);
 
-      const lastPrice = await getLastPrice(findedFigiByTicker);
+      const figi = findedInstumentByTicker?.figi;
+      debug(figi);
+
+      const lotSize = findedInstumentByTicker?.lot;
+      debug(lotSize);
+
+      const lastPrice = await getLastPrice(figi); // sleep внутри есть
 
       const newPosition = {
         pair: `${desiredTicker}/RUB`,
         base: desiredTicker,
         quote: 'RUB',
-        figi: findedFigiByTicker,
+        figi,
         price: lastPrice,
         priceNumber: convertTinkoffNumberToNumber(lastPrice),
         amount: 0,
-        lotSize: 1,
-        // lotPrice: lastPrice, // TODO: для usd нужно сделать * lotSize
+        lotSize,
+        lotPrice: convertNumberToTinkoffNumber(lotSize * convertTinkoffNumberToNumber(lastPrice)),
       };
       debug('newPosition', newPosition);
       wallet.push(newPosition);
