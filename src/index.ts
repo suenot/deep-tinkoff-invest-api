@@ -359,7 +359,17 @@ export const balancer = async (positions: Wallet, desiredWallet: DesiredWallet) 
 
   const wallet = positions;
 
-  for (const [desiredTicker, desiredPercent] of Object.entries(desiredWallet)) {
+  const normalizedDesire = normalizeDesire(desiredWallet);
+
+  debug('Добавляем в DesireWallet недостающие инструменты в портфеле со значением 0');
+  for (const position of wallet) {
+    if (normalizedDesire[position.base] === undefined) {
+      debug(`${position.base} не найден в желаемом портфеле, добавляем со значением 0.`);
+      normalizedDesire[position.base] = 0;
+    }
+  }
+
+  for (const [desiredTicker, desiredPercent] of Object.entries(normalizedDesire)) {
     debug(' Ищем base (ticker) в wallet');
     const positionIndex = _.findIndex(wallet, { base: desiredTicker });
     debug('positionIndex', positionIndex);
@@ -426,7 +436,7 @@ export const balancer = async (positions: Wallet, desiredWallet: DesiredWallet) 
   debug(sortedWallet);
   debug('walletSumNumber', walletSumNumber);
 
-  for (const [desiredTicker, desiredPercent] of Object.entries(desiredWallet)) {
+  for (const [desiredTicker, desiredPercent] of Object.entries(normalizedDesire)) {
     debug(' Ищем base (ticker) в wallet');
     const positionIndex = _.findIndex(sortedWallet, { base: desiredTicker });
     debug('positionIndex', positionIndex);
@@ -490,8 +500,13 @@ export const balancer = async (positions: Wallet, desiredWallet: DesiredWallet) 
   }
 
   debug('sortedWallet', sortedWallet);
+
+  debug('Сортируем ордера по возврастанию, чтобы сначала выполнить ордера на продажу, получить рубли, а уже потом выполнять ордера на покупку акций.');
+  const sortedWalletsSellsFirst = _.orderBy(sortedWallet, ['toBuyNumber'], ['asc']);
+  debug('sortedWalletsSellsFirst', sortedWalletsSellsFirst);
+
   debug('walletInfo', walletInfo);
 
   debug('Для всех позиций создаем необходимые ордера');
-  await generateOrders(sortedWallet);
+  await generateOrders(sortedWalletsSellsFirst);
 };

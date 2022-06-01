@@ -2,7 +2,6 @@ import 'dotenv/config';
 import 'mocha';
 import { expect } from 'chai';
 import _ from 'lodash';
-import { instruments } from './instrumentsData';
 import { Wallet, DesiredWallet, Position } from './types.d';
 import { normalizeDesire, addNumbersToWallet, balancer } from './index';
 
