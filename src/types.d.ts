@@ -32,3 +32,12 @@ export type Wallet = Position[];
 export interface DesiredWallet {
   [key: string]: number;
 }
+export interface Ohlcv {
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+  time: Date;
+  isComplete: boolean;
+}

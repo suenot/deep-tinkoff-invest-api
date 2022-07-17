@@ -2,7 +2,7 @@ import 'dotenv/config';
 import 'mocha';
 import { expect } from 'chai';
 import _ from 'lodash';
-import { Wallet, DesiredWallet, Position } from './types.d';
+import { Wallet, DesiredWallet } from '../types.d';
 import { normalizeDesire, addNumbersToWallet, balancer } from './index';
 
 export const debug = require('debug')('bot').extend('balancer-test');
