@@ -62,7 +62,7 @@ npm run start
 ### Additional Information
 Originally, a bot with an [associative data structure](https://github.com/suenot/deep-tinkoff-invest) was prepared for the contest, but due to time constraints, I decided to take an easier task.
 
-===
+_________________
 
 # Торговый бот балансировщик (Russian readme)
 Этот бот участвует в конкурсе [Tinkoff Invest Robot Contest](https://github.com/Tinkoff/invest-robot-contest).
