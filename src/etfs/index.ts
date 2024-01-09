@@ -1,6 +1,8 @@
 import 'dotenv/config';
-import { createSdk } from '../provider/invest-nodejs-grpc-sdk/src/sdk';
-import { InstrumentStatus } from '../provider/invest-nodejs-grpc-sdk/src/generated/instruments';
+import { createSdk } from 'tinkoff-sdk-grpc-js/src/sdk';
+import { InstrumentStatus } from 'tinkoff-sdk-grpc-js/dist/generated/instruments';
+// import { createSdk } from '../provider/invest-nodejs-grpc-sdk/src/sdk';
+// import { InstrumentStatus } from '../provider/invest-nodejs-grpc-sdk/src/generated/instruments';
 import _ from 'lodash';
 import { SLEEP_BETWEEN_ORDERS } from '../config';
 import { convertTinkoffNumberToNumber, writeFile } from '../utils/index';

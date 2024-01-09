@@ -1,5 +1,5 @@
 import { Ohlcv } from '../types.d';
-import { HistoricCandle } from '../provider/invest-nodejs-grpc-sdk/src/generated/marketdata';
+import { HistoricCandle } from 'tinkoff-sdk-grpc-js/dist/generated/marketdata';
 
 export const historicCandlesToOhlcv = (candles: HistoricCandle[]): Ohlcv[] => {
   return [

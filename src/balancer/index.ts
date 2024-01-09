@@ -1,9 +1,11 @@
 import 'dotenv/config';
-import { createSdk } from '../provider/invest-nodejs-grpc-sdk/src/sdk';
+import { createSdk } from 'tinkoff-sdk-grpc-js/src/sdk';
+// import { createSdk } from '../provider/invest-nodejs-grpc-sdk/src/sdk';
 import 'mocha';
 import _ from 'lodash';
 import uniqid from 'uniqid';
-import { OrderDirection, OrderType } from '../provider/invest-nodejs-grpc-sdk/src/generated/orders';
+import { OrderDirection, OrderType } from 'tinkoff-sdk-grpc-js/dist/generated/orders';
+// import { OrderDirection, OrderType } from '../provider/invest-nodejs-grpc-sdk/src/generated/orders';
 import { SLEEP_BETWEEN_ORDERS } from '../config';
 import { Wallet, DesiredWallet, Position } from '../types.d';
 import { getLastPrice, generateOrders } from '../provider';
